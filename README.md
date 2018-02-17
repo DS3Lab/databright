@@ -1,5 +1,5 @@
 # Databright
-DataBright: Towards a Global Exchange for Decentralized Data Ownership and Trusted Computation
+DataBright: Towards a Global Exchange for Decentralized Data Ownership and Trusted Computation [[pdf]](https://arxiv.org/abs/1802.04780)
 
 ## Data Market
 
