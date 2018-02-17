@@ -1,1 +1,1 @@
-# etherDB
+# DataBright data market
