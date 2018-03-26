@@ -2,13 +2,14 @@ pragma solidity ^0.4.18;
 
 import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./SimpleDatabaseFactory.sol";
+import "./CuratorToken.sol";
 
 contract tokenRecipient {
     event receivedEther(address sender, uint amount);
     event receivedTokens(address _from, uint256 _value, address _token, bytes _extraData);
 
     function receiveApproval(address _from, uint256 _value, address _token, bytes _extraData) public {
-        Token t = Token(_token);
+        CuratorToken t = CuratorToken(_token);
         require(t.transferFrom(_from, this, _value));
         receivedTokens(_from, _value, _token, _extraData);
     }
@@ -16,12 +17,6 @@ contract tokenRecipient {
     function () payable public{
         receivedEther(msg.sender, msg.value);
     }
-}
-
-// Interfaces
-contract Token {
-    mapping (address => uint256) public balanceOf;
-    function transferFrom(address _from, address _to, uint256 _value) public returns (bool success);
 }
 
 contract Database {
@@ -39,7 +34,9 @@ contract DatabaseAssociation is Ownable, tokenRecipient {
     uint public debatingPeriodInMinutes;
     Proposal[] public proposals;
     uint public numProposals;
-    Token public sharesTokenAddress;
+    uint public creationReward = 10000; // Temporary fixed reward for creating a new database
+    uint public shardReward = 1000; // Temporary fixed reward for adding a shard to the database
+    CuratorToken public sharesTokenAddress;
     SimpleDatabaseFactory public databaseFactory;
 
     event ProposalAdded(uint proposalID, address recipient, uint amount, string description, string argument, address curator, uint state);
@@ -81,9 +78,11 @@ contract DatabaseAssociation is Ownable, tokenRecipient {
      *
      * First time setup
      */
-    function DatabaseAssociation(Token sharesAddress, uint minimumSharesToPassAVote, uint minutesForDebate) payable public {
+    function DatabaseAssociation(CuratorToken sharesAddress, uint minimumSharesToPassAVote, uint minutesForDebate, uint _creationReward, uint _shardReward) payable public {
         changeVotingRules(sharesAddress, minimumSharesToPassAVote, minutesForDebate);
         databaseFactory = new SimpleDatabaseFactory(); //create new factory
+        creationReward = _creationReward;
+        shardReward = _shardReward;
         NewFactory(databaseFactory); //throw event!
     }
 
@@ -97,8 +96,8 @@ contract DatabaseAssociation is Ownable, tokenRecipient {
      * @param minimumSharesToPassAVote proposal can vote only if the sum of shares held by all voters exceed this number
      * @param minutesForDebate the minimum amount of delay between when a proposal is made and when it can be executed
      */
-    function changeVotingRules(Token sharesAddress, uint minimumSharesToPassAVote, uint minutesForDebate) onlyOwner public{
-        sharesTokenAddress = Token(sharesAddress);
+    function changeVotingRules(CuratorToken sharesAddress, uint minimumSharesToPassAVote, uint minutesForDebate) onlyOwner public{
+        sharesTokenAddress = CuratorToken(sharesAddress);
         if (minimumSharesToPassAVote == 0 ) minimumSharesToPassAVote = 1;
         minimumQuorum = minimumSharesToPassAVote;
         debatingPeriodInMinutes = minutesForDebate;
@@ -260,9 +259,11 @@ contract DatabaseAssociation is Ownable, tokenRecipient {
             p.executed = true;
             if (p.state == 1) {
                 require(databaseFactory.createDatabase(p.argument));
+                sharesTokenAddress.mint(p.curator, creationReward);
             } else if (p.state == 2) {
                 Database db = Database(p.recipient);
                 require(db.addShard(p.curator, p.argument));
+                sharesTokenAddress.mint(p.curator, shardReward);
             } else {
                 require(p.recipient.call.value(p.amount)(transactionBytecode));
             }
