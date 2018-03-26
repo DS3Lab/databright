@@ -10,7 +10,7 @@ module.exports = {
   networks: {
     development: {
       host: "127.0.0.1",
-      port: 7546,
+      port: 8545,
       network_id: "*" // Match any network id
     },
     parity: {
@@ -23,14 +23,13 @@ module.exports = {
     rinkeby: {
       host: "localhost", // Connect to geth on the specified
       port: 8545,
-      from: "0xD371bc297F18314F5b09c398E0297077A9F60fD6", // default address to use for any transaction Truffle makes during migrations
+
       network_id: 4,
       gas: 6721975 // Gas limit used for deploys
     },
     mist: {
       host: "localhost",
       port: 8545, // somehow still buggy
-      from: "0xfFE106D98c8b57BfEF3A74ad426D370590162581", // mist solo network
       network_id: "*"
     }
   }

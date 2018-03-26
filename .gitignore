@@ -1,2 +1,4 @@
 */node_modules/*
-./data_market/build/*
+data_market/build/*
+data_market/pnet/
+data_market/package-lock.json
