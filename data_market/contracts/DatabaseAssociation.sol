@@ -4,21 +4,6 @@ import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./SimpleDatabaseFactory.sol";
 import "./CuratorToken.sol";
 
-contract tokenRecipient {
-    event receivedEther(address sender, uint amount);
-    event receivedTokens(address _from, uint256 _value, address _token, bytes _extraData);
-
-    function receiveApproval(address _from, uint256 _value, address _token, bytes _extraData) public {
-        CuratorToken t = CuratorToken(_token);
-        require(t.transferFrom(_from, this, _value));
-        receivedTokens(_from, _value, _token, _extraData);
-    }
-
-    function () payable public{
-        receivedEther(msg.sender, msg.value);
-    }
-}
-
 contract Database {
     function addShard(address _curator, string _ipfsHash) public returns (bool);
     
@@ -28,7 +13,7 @@ contract Database {
 /**
  * The shareholder association contract itself
  */
-contract DatabaseAssociation is Ownable, tokenRecipient {
+contract DatabaseAssociation is Ownable {
 
     uint public minimumQuorum;
     uint public debatingPeriodInMinutes;
