@@ -219,7 +219,8 @@ contract DatabaseAssociation is Ownable {
 
         require(now > p.votingDeadline                                             // If it is past the voting deadline
             && !p.executed                                                          // and it has not already been executed
-            && p.proposalHash == keccak256(p.recipient, p.amount, transactionBytecode)); // and the supplied code matches the proposal...
+            && p.proposalHash == keccak256(p.recipient, p.amount, transactionBytecode)
+            && owner == sharesTokenAddress.owner()); // and the supplied code matches the proposal...
 
 
         // ...then tally the results
@@ -245,13 +246,16 @@ contract DatabaseAssociation is Ownable {
 
             if (p.state == 1) {
                 require(databaseFactory.createDatabase(p.argument));
+                // On database creation, the association owner gets a symbolic token to vote on the first shard proposal
+                // The DatabaseAssociation owner also needs to own the CuratorToken for minting
                 sharesTokenAddress.mint(owner, creationReward);
             } else if (p.state == 2) {
                 Database db = Database(p.recipient);
+                // if this is the first shard, burn the symbolic token of the owner
                 if(db.getNumberOfShards() == 0) {
                   sharesTokenAddress.burn(creationReward);
                 }
-                require(db.addShard(p.curator, p.argument));
+                require(db.addShard(p.curator, p.argument)); // TODO: Are the transactions atomic?
                 sharesTokenAddress.mint(p.curator, shardReward);
             } else {
                 require(p.recipient.call.value(p.amount)(transactionBytecode));
