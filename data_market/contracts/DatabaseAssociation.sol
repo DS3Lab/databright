@@ -8,6 +8,8 @@ contract Database {
     function addShard(address _curator, string _ipfsHash) public returns (bool);
     
     function getShard(uint _i) public view returns (address, string);
+
+    function getNumberOfShards() public view returns (uint);
 }
 
 /**
@@ -19,7 +21,7 @@ contract DatabaseAssociation is Ownable {
     uint public debatingPeriodInMinutes;
     Proposal[] public proposals;
     uint public numProposals;
-    uint public creationReward = 10000; // Temporary fixed reward for creating a new database
+    uint public creationReward = 1; // Temporary fixed reward for creating a new database, just so that voting on the first shard can happen
     uint public shardReward = 1000; // Temporary fixed reward for adding a shard to the database
     CuratorToken public sharesTokenAddress;
     SimpleDatabaseFactory public databaseFactory;
@@ -212,7 +214,7 @@ contract DatabaseAssociation is Ownable {
      * @param proposalNumber proposal number
      * @param transactionBytecode optional: if the transaction contained a bytecode, you need to send it
      */
-    function executeProposal(uint proposalNumber, bytes transactionBytecode) public {
+    function executeProposal(uint proposalNumber, bytes transactionBytecode) public onlyOwner {
         Proposal storage p = proposals[proposalNumber];
 
         require(now > p.votingDeadline                                             // If it is past the voting deadline
@@ -243,9 +245,12 @@ contract DatabaseAssociation is Ownable {
 
             if (p.state == 1) {
                 require(databaseFactory.createDatabase(p.argument));
-                sharesTokenAddress.mint(p.curator, creationReward);
+                sharesTokenAddress.mint(owner, creationReward);
             } else if (p.state == 2) {
                 Database db = Database(p.recipient);
+                if(db.getNumberOfShards() == 0) {
+                  sharesTokenAddress.burn(creationReward);
+                }
                 require(db.addShard(p.curator, p.argument));
                 sharesTokenAddress.mint(p.curator, shardReward);
             } else {
