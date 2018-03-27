@@ -256,7 +256,6 @@ contract DatabaseAssociation is Ownable, tokenRecipient {
         if (yea > nay) {
             // Proposal passed; execute the transaction
 
-            p.executed = true;
             if (p.state == 1) {
                 require(databaseFactory.createDatabase(p.argument));
                 sharesTokenAddress.mint(p.curator, creationReward);
@@ -268,6 +267,7 @@ contract DatabaseAssociation is Ownable, tokenRecipient {
                 require(p.recipient.call.value(p.amount)(transactionBytecode));
             }
 
+            p.executed = true;
             p.proposalPassed = true;
         } else {
             // Proposal failed
