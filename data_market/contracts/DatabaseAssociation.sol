@@ -21,8 +21,8 @@ contract DatabaseAssociation is Ownable {
     uint public debatingPeriodInMinutes;
     Proposal[] public proposals;
     uint public numProposals;
-    uint public creationReward = 1; // Temporary fixed reward for creating a new database, just so that voting on the first shard can happen
-    uint public shardReward = 1000; // Temporary fixed reward for adding a shard to the database
+    uint public creationReward; // Temporary fixed reward for creating a new database, just so that voting on the first shard can happen
+    uint public shardReward; // Temporary fixed reward for adding a shard to the database
     CuratorToken public sharesTokenAddress;
     SimpleDatabaseFactory public databaseFactory;
 
