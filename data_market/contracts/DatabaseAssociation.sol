@@ -24,6 +24,8 @@ contract DatabaseAssociation is Ownable {
     uint public creationReward; // Temporary fixed reward for creating a new database, just so that voting on the first shard can happen
     uint public shardReward; // Temporary fixed reward for adding a shard to the database
     CuratorToken public sharesTokenAddress;
+    address initialCurator;
+    bool isFirstShard = false;
     SimpleDatabaseFactory public databaseFactory;
 
     event ProposalAdded(uint proposalID, address recipient, uint amount, string description, string argument, address curator, uint state);
@@ -65,11 +67,14 @@ contract DatabaseAssociation is Ownable {
      *
      * First time setup
      */
-    function DatabaseAssociation(CuratorToken sharesAddress, uint minimumSharesToPassAVote, uint minutesForDebate, uint _creationReward, uint _shardReward) payable public {
+    function DatabaseAssociation(uint minimumSharesToPassAVote, uint minutesForDebate, uint _creationReward, uint _shardReward) payable public {
+        CuratorToken sharesAddress = new CuratorToken();
         changeVotingRules(sharesAddress, minimumSharesToPassAVote, minutesForDebate);
         databaseFactory = new SimpleDatabaseFactory(); //create new factory
         creationReward = _creationReward;
         shardReward = _shardReward;
+        initialCurator = owner;
+        sharesTokenAddress.mint(initialCurator, creationReward);
         NewFactory(databaseFactory); //throw event!
     }
 
@@ -79,12 +84,13 @@ contract DatabaseAssociation is Ownable {
      * Make so that proposals need tobe discussed for at least `minutesForDebate/60` hours
      * and all voters combined must own more than `minimumSharesToPassAVote` shares of token `sharesAddress` to be executed
      *
-     * @param sharesAddress token address
+     * @param sharesAddress token address. The token must be owned by the contract
      * @param minimumSharesToPassAVote proposal can vote only if the sum of shares held by all voters exceed this number
      * @param minutesForDebate the minimum amount of delay between when a proposal is made and when it can be executed
      */
     function changeVotingRules(CuratorToken sharesAddress, uint minimumSharesToPassAVote, uint minutesForDebate) onlyOwner public{
         sharesTokenAddress = CuratorToken(sharesAddress);
+        require(sharesTokenAddress.owner() == address(this));
         if (minimumSharesToPassAVote == 0 ) minimumSharesToPassAVote = 1;
         minimumQuorum = minimumSharesToPassAVote;
         debatingPeriodInMinutes = minutesForDebate;
@@ -214,13 +220,12 @@ contract DatabaseAssociation is Ownable {
      * @param proposalNumber proposal number
      * @param transactionBytecode optional: if the transaction contained a bytecode, you need to send it
      */
-    function executeProposal(uint proposalNumber, bytes transactionBytecode) public onlyOwner {
+    function executeProposal(uint proposalNumber, bytes transactionBytecode) public {
         Proposal storage p = proposals[proposalNumber];
 
         require(now > p.votingDeadline                                             // If it is past the voting deadline
             && !p.executed                                                          // and it has not already been executed
-            && p.proposalHash == keccak256(p.recipient, p.amount, transactionBytecode)
-            && owner == sharesTokenAddress.owner()); // and the supplied code matches the proposal...
+            && p.proposalHash == keccak256(p.recipient, p.amount, transactionBytecode)); // and the supplied code matches the proposal...
 
 
         // ...then tally the results
@@ -245,18 +250,17 @@ contract DatabaseAssociation is Ownable {
             // Proposal passed; execute the transaction
 
             if (p.state == 1) {
-                require(databaseFactory.createDatabase(p.argument));
-                // On database creation, the association owner gets a symbolic token to vote on the first shard proposal
-                // The DatabaseAssociation owner also needs to own the CuratorToken for minting
-                sharesTokenAddress.mint(owner, creationReward);
+                require(databaseFactory.createDatabase(p.argument));                
             } else if (p.state == 2) {
                 Database db = Database(p.recipient);
-                // if this is the first shard, burn the symbolic token of the owner
-                if(db.getNumberOfShards() == 0) {
-                  sharesTokenAddress.burn(creationReward);
-                }
+
                 require(db.addShard(p.curator, p.argument)); // TODO: Are the transactions atomic?
-                sharesTokenAddress.mint(p.curator, shardReward);
+                // if this is the first shard, burn the symbolic token of the owner
+                if(!isFirstShard) {
+                  sharesTokenAddress.burnFrom(initialCurator, creationReward);
+                  isFirstShard = true;
+                }
+                require(sharesTokenAddress.mint(p.curator, shardReward));
             } else {
                 require(p.recipient.call.value(p.amount)(transactionBytecode));
             }
