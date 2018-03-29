@@ -67,14 +67,13 @@ contract DatabaseAssociation is Ownable {
      *
      * First time setup
      */
-    function DatabaseAssociation(uint minimumSharesToPassAVote, uint minutesForDebate, uint _creationReward, uint _shardReward) payable public {
+    function DatabaseAssociation(uint minimumSharesToPassAVote, uint minutesForDebate, uint _shardReward) payable public {
         CuratorToken sharesAddress = new CuratorToken();
         changeVotingRules(sharesAddress, minimumSharesToPassAVote, minutesForDebate);
         databaseFactory = new SimpleDatabaseFactory(); //create new factory
-        creationReward = _creationReward;
         shardReward = _shardReward;
         initialCurator = owner;
-        sharesTokenAddress.mint(initialCurator, creationReward);
+        sharesTokenAddress.mint(initialCurator, minimumSharesToPassAVote);
         NewFactory(databaseFactory); //throw event!
     }
 
@@ -257,7 +256,7 @@ contract DatabaseAssociation is Ownable {
                 require(db.addShard(p.curator, p.argument)); // TODO: Are the transactions atomic?
                 // if this is the first shard, burn the symbolic token of the owner
                 if(!isFirstShard) {
-                  sharesTokenAddress.burnFrom(initialCurator, creationReward);
+                  sharesTokenAddress.burnFrom(initialCurator, minimumQuorum);
                   isFirstShard = true;
                 }
                 require(sharesTokenAddress.mint(p.curator, shardReward));
