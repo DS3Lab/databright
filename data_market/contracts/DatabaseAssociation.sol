@@ -22,7 +22,6 @@ contract DatabaseAssociation is Ownable {
     Proposal[] public proposals;
     uint public numProposals;
     uint public creationReward; // Temporary fixed reward for creating a new database, just so that voting on the first shard can happen
-    uint public shardReward; // Temporary fixed reward for adding a shard to the database
     CuratorToken public sharesTokenAddress;
     address initialCurator;
     bool isFirstShard = false;
@@ -45,6 +44,7 @@ contract DatabaseAssociation is Ownable {
         uint numberOfVotes;
         bytes32 proposalHash;
         string argument; //either name or ipfsHash
+        uint requestedReward; //proposed shares for shard
         address curator; //address for shard adder
         uint state;
         Vote[] votes;
@@ -67,11 +67,10 @@ contract DatabaseAssociation is Ownable {
      *
      * First time setup
      */
-    function DatabaseAssociation(uint minimumSharesToPassAVote, uint minutesForDebate, uint _shardReward) payable public {
+    function DatabaseAssociation(uint minimumSharesToPassAVote, uint minutesForDebate) payable public {
         CuratorToken sharesAddress = new CuratorToken();
         changeVotingRules(sharesAddress, minimumSharesToPassAVote, minutesForDebate);
         databaseFactory = new SimpleDatabaseFactory(); //create new factory
-        shardReward = _shardReward;
         initialCurator = owner;
         sharesTokenAddress.mint(initialCurator, minimumSharesToPassAVote);
         NewFactory(databaseFactory); //throw event!
@@ -112,6 +111,7 @@ contract DatabaseAssociation is Ownable {
         string jobDescription,
         bytes transactionBytecode,
         string argument,
+        uint requestedReward,
         address curator, //annoying but we need it to store the data owner
         uint state // use to save state (create database, shards etc)
     ) public
@@ -129,6 +129,7 @@ contract DatabaseAssociation is Ownable {
         p.proposalPassed = false;
         p.numberOfVotes = 0;
         p.argument = argument; //argument for creating database (name) or ipfsHash
+        p.requestedReward = requestedReward;
         p.curator = curator; //argument for curator but we can check for address(0) !
         p.state = state;
         ProposalAdded(proposalID, beneficiary, weiAmount, jobDescription, argument, curator, state);
@@ -146,7 +147,7 @@ contract DatabaseAssociation is Ownable {
     ) public
         returns (uint proposalID)
     {
-        return newProposal(databaseFactory, 0, jobDescription, "", name,
+        return newProposal(databaseFactory, 0, jobDescription, "", name, 0,
                            address(0), 1);
     }
     
@@ -157,11 +158,12 @@ contract DatabaseAssociation is Ownable {
         address database,
         string jobDescription,
         string ipfsHash,
+        uint requestedReward,
         address curator
     ) public 
         returns (uint proposalID)
     {
-        return newProposal(database, 0, jobDescription, "", ipfsHash, curator, 2);
+        return newProposal(database, 0, jobDescription, "", ipfsHash, requestedReward, curator, 2);
     }
 
     /**
@@ -259,7 +261,7 @@ contract DatabaseAssociation is Ownable {
                   sharesTokenAddress.burnFrom(initialCurator, minimumQuorum);
                   isFirstShard = true;
                 }
-                require(sharesTokenAddress.mint(p.curator, shardReward));
+                require(sharesTokenAddress.mint(p.curator, p.requestedReward));
             } else {
                 require(p.recipient.call.value(p.amount)(transactionBytecode));
             }
