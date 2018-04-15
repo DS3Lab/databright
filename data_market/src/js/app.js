@@ -23,7 +23,13 @@ App = {
   },
 
   initContract: function() {
-    $.getJSON('CuratorToken.json', function(data) {
+    
+    $.getJSON('DatabaseAssociation.json', function(data) {
+      var Artifact = data;
+      App.contracts.DatabaseAssociation = TruffleContract(Artifact);
+      App.contracts.DatabaseAssociation.setProvider(App.web3Provider);
+
+      $.getJSON('CuratorToken.json', function(data) {
       // Get the necessary contract artifact file and instantiate it with truffle-contract.
       var CuratorTokenArtifact = data;
       App.contracts.CuratorToken = TruffleContract(CuratorTokenArtifact);
@@ -33,12 +39,7 @@ App = {
 
       // Use our contract to retieve and mark the adopted pets.
       return App.getBalances();
-    });
-
-    $.getJSON('DatabaseAssociation.json', function(data) {
-      var Artifact = data;
-      App.contracts.DatabaseAssociation = TruffleContract(Artifact);
-      App.contracts.DatabaseAssociation.setProvider(App.web3Provider);
+      });
 
       return App.updateAssociation(); 
     });
@@ -209,20 +210,25 @@ App = {
       }
 
       var account = accounts[0];
-
-      App.contracts.CuratorToken.deployed().then(function(instance) {
+      App.contracts.DatabaseAssociation.deployed().then((instance) => {
+        databaseAssociationInstance = instance;
+        return instance.sharesTokenAddress();
+      }).then(function(result) {
+        console.log(result);
+        App.contracts.CuratorToken.at(result).then(function(instance) {
         curatorTokenInstance = instance;
 
         return curatorTokenInstance.balanceOf(account);
-      }).then(function(result) {
-        balance = result.c[0];
-        curatorTokenInstance.totalSupply().then(function(result) {
-          var share = balance / result.c[0] * 100
-          $('#accountBalance').text(balance + " (" + share + "%)" ); //calculates shares
+        }).then(function(result) {
+          balance = result.c[0];
+          curatorTokenInstance.totalSupply().then(function(result) {
+            var share = balance / result.c[0] * 100
+            $('#accountBalance').text(balance + " (" + share + "%)" ); //calculates shares
+          });
+          $('#accountAddress').text(account);
+        }).catch(function(err) {
+          console.log(err.message);
         });
-        $('#accountAddress').text(account);
-      }).catch(function(err) {
-        console.log(err.message);
       });
     });
   }
@@ -234,25 +240,3 @@ $(function() {
     App.init();
   });
 });
-
-
-
-
-
-// Running migration: 1_initial_migration.js
-//   Replacing Migrations...
-//   ... 0xb1e777ae4ac9b4f19228dd3a8086505f53e955be513ed6649cb0668a5797ec9e
-//   Migrations: 0x676ae94d49fdbea2702d9a30ffa0d85cf60ab72b
-// Saving successful migration to network...
-//   ... 0x73b2e9b94a313da899a30856ece528a772ea519819d4af5d0bc6ff8099507623
-// Saving artifacts...
-// Running migration: 2_deploy_token.js
-//   Replacing CuratorToken...
-//   ... 0x0305874d74f8f7b68ffda04dcfe0d1cb55d4b02f65b81fefce1a75414ecd2c7e
-//   CuratorToken: 0x68d0e6474a853b446ad5dc4462a168ab7a38fceb
-//   Replacing DatabaseAssociation...
-//   ... 0x3b19302d4a92e32e29fa5383ee03620c45cf4ab96ed068e7c643fd439fb4a44a
-//   DatabaseAssociation: 0x7dac8906e3535aa42b18f380e44ecad9663b23b6
-// Saving successful migration to network...
-//   ... 0x2efcf02ea448dee71ae268c74fea7c42ee92d7fd327d409cc63ef4fa08a24d2f
-// Saving artifacts...
