@@ -41,6 +41,24 @@ App = {
       return App.getBalances();
       });
 
+      $.getJSON('SimpleDatabaseFactory.json', function(data) {
+      // Get the necessary contract artifact file and instantiate it with truffle-contract.
+      var Artifact = data;
+      App.contracts.SimpleDatabaseFactory = TruffleContract(Artifact);
+
+      // Set the provider for our contract.
+      App.contracts.SimpleDatabaseFactory.setProvider(App.web3Provider);
+      });
+
+      $.getJSON('SimpleDatabase.json', function(data) {
+      // Get the necessary contract artifact file and instantiate it with truffle-contract.
+      var Artifact = data;
+      App.contracts.SimpleDatabase = TruffleContract(Artifact);
+
+      // Set the provider for our contract.
+      App.contracts.SimpleDatabase.setProvider(App.web3Provider);
+      });
+
       return App.updateAssociation(); 
     });
     return App.bindEvents();
@@ -104,6 +122,8 @@ App = {
     el("#goToShard").addEventListener('click', () => {
       el("#proposalCreation").style.display = 'block';
       el("#proposalOverview").style.display = 'none';
+
+      App.populateDatabaseList();
     });
 
     // the create ballot button
@@ -158,6 +178,12 @@ App = {
 
     App.contracts.DatabaseAssociation.deployed().then((instance) => {
       databaseAssociationInstance = instance;
+      databaseAddress = $('#proposal_0_database').val();
+      description = $('#proposal_0_description').val();
+      hash = $('#proposal_0_hash').val();
+      requestedTokens = parseInt($('#proposal_0_requestedtokens').val());
+      curator = $('#proposal_0_curator').val();
+      databaseAssociationInstance.proposeAddShard(databaseAddress, description, hash, requestedTokens, curator);
     })
   },
 
@@ -214,7 +240,6 @@ App = {
         databaseAssociationInstance = instance;
         return instance.sharesTokenAddress();
       }).then(function(result) {
-        console.log(result);
         App.contracts.CuratorToken.at(result).then(function(instance) {
         curatorTokenInstance = instance;
 
@@ -231,8 +256,24 @@ App = {
         });
       });
     });
-  }
+  },
 
+  populateDatabaseList: function() {
+
+    App.contracts.DatabaseAssociation.deployed().then((instance) => {
+      return instance.databaseFactory();
+    }).then(function(result) {
+      console.log(result);
+      App.contracts.SimpleDatabaseFactory.at(result).then(function(factoryInstance) {
+        var i;
+        for (i = 0; i < factoryInstance.numberOfDatabases; i++) { 
+          db = factoryInstance.getDatabase(i);
+          console.log(db);
+          el('#proposal_0_database').innerHTML += '<option value="' + db[0] + ' >' + db[1] + '</option>';
+        }
+      });
+    });
+  }
 };
 
 $(function() {
