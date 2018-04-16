@@ -109,26 +109,40 @@ App = {
 
     $("#aiEvaluate").click(predictFromIPFS);
 
-    el('#addProposal').addEventListener('click', function(){
-          App.addProposal();
+    el('#addShardProposal').addEventListener('click', function(){
+          App.addShardProposal();
         });
 
+    el('#addDatabaseProposal').addEventListener('click', function(){
+          App.addDatabaseProposal();
+        });
     // switch to proposal page
-    el("#goToProposals").addEventListener('click', function(){
-      el("#proposalCreation").style.display = 'none';
+    el("#fromShardGoToProposals").addEventListener('click', function(){
+      el("#shardProposalCreation").style.display = 'none';
       el("#proposalOverview").style.display = 'block';
+      App.loadProposals();
     });
 
-    // switch back
+    // switch to proposal page
+    el("#fromDatabaseGoToProposals").addEventListener('click', function(){
+      el("#databaseProposalCreation").style.display = 'none';
+      el("#proposalOverview").style.display = 'block';
+      App.loadProposals();
+    });
+
+    // switch to add shard page
     el("#goToShard").addEventListener('click', () => {
-      el("#proposalCreation").style.display = 'block';
+      el("#shardProposalCreation").style.display = 'block';
       el("#proposalOverview").style.display = 'none';
 
       App.populateDatabaseList();
     });
 
-    // the create ballot button
-    el('#goToProposals').addEventListener('click', App.loadProposals)
+    // switch to add database page
+    el("#goToNewDatabase").addEventListener('click', () => {
+      el("#databaseProposalCreation").style.display = 'block';
+      el("#proposalOverview").style.display = 'none';
+    });
   },
 
   loadProposals: function() {
@@ -177,18 +191,30 @@ App = {
     })
   },
 
-  addProposal: function(event) {
+  addShardProposal: function(event) {
 
     var databaseAssociationInstance;
 
     App.contracts.DatabaseAssociation.deployed().then((instance) => {
       databaseAssociationInstance = instance;
-      databaseAddress = $('#proposal_0_database').val();
-      description = $('#proposal_0_description').val();
-      hash = $('#proposal_0_hash').val();
-      requestedTokens = parseInt($('#proposal_0_requestedtokens').val());
-      curator = $('#proposal_0_curator').val();
+      databaseAddress = $('#shardProposal_database').val();
+      description = $('#shardProposal_description').val();
+      hash = $('#shardProposal_hash').val();
+      requestedTokens = parseInt($('#shardProposal_requestedtokens').val());
+      curator = $('#shardProposal_curator').val();
       databaseAssociationInstance.proposeAddShard(databaseAddress, description, hash, requestedTokens, curator);
+    })
+  },
+
+  addDatabaseProposal: function(event) {
+
+    var databaseAssociationInstance;
+
+    App.contracts.DatabaseAssociation.deployed().then((instance) => {
+      databaseAssociationInstance = instance;
+      name = $('#databaseProposal_name').val();
+      description = $('#databaseProposal_description').val();
+      databaseAssociationInstance.proposeAddDatabase(name, description);
     })
   },
 
@@ -274,7 +300,7 @@ App = {
         for (i = 0; i < factoryInstance.numberOfDatabases; i++) { 
           db = factoryInstance.getDatabase(i);
           console.log(db);
-          el('#proposal_0_database').innerHTML += '<option value="' + db[0] + ' >' + db[1] + '</option>';
+          el('#shardProposal_database').innerHTML += '<option value="' + db[0] + ' >' + db[1] + '</option>';
         }
       });
     });

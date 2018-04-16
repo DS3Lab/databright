@@ -24,22 +24,35 @@
         </div>
       </div>
 
-    <div id="proposalCreation", style="display:none;">
-      <h4>Add Proposal</h4>
+    <div id="shardProposalCreation", style="display:none;">
+      <h4>Propose New Shard</h4>
 
       <div id="inputProposals">
-        <select class="form-control" id="proposal_0_database" />
+        <select class="form-control" id="shardProposal_database" />
         
-        <input type="text" id="proposal_0_description" maxLength="64" placeholder="Description" />
-        <input type="text" id="proposal_0_curator" maxLength="64" placeholder="Curator" />
-        <input type="number" id="proposal_0_requestedtokens" min="0" placeholder="Requested Tokens" />
-        <input type="text" id="proposal_0_hash" maxLength="64" placeholder="IPFS Hash" />
-        <span id="proposal_0_next"></span> <!-- shim for adding -->
+        <input type="text" id="shardProposal_description" maxLength="64" placeholder="Description" />
+        <input type="text" id="shardProposal_curator" maxLength="64" placeholder="Curator" />
+        <input type="number" id="shardProposal_requestedtokens" min="0" placeholder="Requested Tokens" />
+        <input type="text" id="shardProposal_hash" maxLength="64" placeholder="IPFS Hash" />
+        <span id="shardProposal_next"></span> <!-- shim for adding -->
       </div>
 
-      <button id="addProposal">Add Proposal</button>
+      <button id="addShardProposal">Add Proposal</button>
       
-      <button id="goToProposals">View Proposals</button>
+      <button id="fromShardGoToProposals">View Proposals</button>
+      <hr />
+    </div>
+    <div id="databaseProposalCreation", style="display:none;">
+      <h4>Propose New Database</h4>
+
+      <div id="databaseInputProposals">
+        <input type="text" id="databaseProposal_name" maxLength="64" placeholder="Name" />
+        <input type="text" id="databaseProposal_description" maxLength="64" placeholder="Description" />
+      </div>
+
+      <button id="addDatabaseProposal">Add Proposal</button>
+      
+      <button id="fromDatabaseGoToProposals">View Proposals</button>
       <hr />
     </div>
     <div id="proposalOverview" style="display:block;">
@@ -57,6 +70,7 @@
           <hr />
 
           <button id="goToShard">Add Data</button>
+          <button id="goToNewDatabase">New Database</button>
           <button id="sendTokens">Send Tokens</button>
 
           <br />
