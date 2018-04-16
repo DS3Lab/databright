@@ -111,10 +111,14 @@ App = {
 
     el('#addShardProposal').addEventListener('click', function(){
           App.addShardProposal();
+          el("#shardProposalCreation").style.display = 'none';
+          el("#proposalOverview").style.display = 'block';
         });
 
     el('#addDatabaseProposal').addEventListener('click', function(){
           App.addDatabaseProposal();
+          el("#databaseProposalCreation").style.display = 'none';
+          el("#proposalOverview").style.display = 'block';
         });
     // switch to proposal page
     el("#fromShardGoToProposals").addEventListener('click', function(){
