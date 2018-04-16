@@ -312,7 +312,5 @@ App = {
 };
 
 $(function() {
-  $(window).load(function() {
-    App.init();
-  });
+  $(window).on( "load",App.init());
 });
