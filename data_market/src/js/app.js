@@ -38,7 +38,7 @@ App = {
       App.contracts.CuratorToken.setProvider(App.web3Provider);
 
       // Use our contract to retieve and mark the adopted pets.
-      return App.getBalances();
+      App.getBalances();
       });
 
       $.getJSON('SimpleDatabaseFactory.json', function(data) {
@@ -59,7 +59,8 @@ App = {
       App.contracts.SimpleDatabase.setProvider(App.web3Provider);
       });
 
-      return App.updateAssociation(); 
+      App.updateAssociation();
+      App.loadProposals();
     });
     return App.bindEvents();
   },
@@ -127,47 +128,51 @@ App = {
     });
 
     // the create ballot button
-    el('#goToProposals').addEventListener('click', function(){
+    el('#goToProposals').addEventListener('click', App.loadProposals)
+  },
+
+  loadProposals: function() {
+
+    var el = function(id){ return document.querySelector(id); }; // Selector
+
+    var databaseAssociationInstance;
+
+    App.contracts.DatabaseAssociation.deployed().then((instance) => {
+      databaseAssociationInstance = instance;
+      var proposalNames = [];
+      // Callback function
       
-      var databaseAssociationInstance;
-
-      App.contracts.DatabaseAssociation.deployed().then((instance) => {
-        databaseAssociationInstance = instance;
-        var proposalNames = [];
-        // Callback function
+      function create_cb(proposalID) {
         
-        function create_cb(proposalID) {
-          
-          function cb(x) {
-            console.log(x);
-            var addImageText = '<h5><a>#' + proposalID + ' '
-            + x[2] + "</a><h5><a>Preview Image</a><p><img id=image_" + proposalID + " src='https://ipfs.io/ipfs/" + 
-            x[8] + 
-            "' width=227 height=227 crossorigin><button data-id='" + 
-            proposalID + "' class='float-right voteForProposal'>"
-            + 'Vote</button></p><hr /></h5>';
+        function cb(x) {
+          console.log(x);
+          var addImageText = '<h5><a>#' + proposalID + ' '
+          + x[2] + "</a><h5><a>Preview Image</a><p><img id=image_" + proposalID + " src='https://ipfs.io/ipfs/" +
+          x[8] +
+          "' width=227 height=227 crossorigin><button data-id='" +
+          proposalID + "' class='float-right voteForProposal'>"
+          + 'Vote</button></p><hr /></h5>';
 
-            var addText = '<h5><a>#' + proposalID + ' '
-            + x[8] + "</a><h5><a>Description</a><p>" + x[2] + ' <button data-id="' + 
-            proposalID + '" class="float-right voteForProposal">'
-            + 'Vote</button></p><hr /></h5>';
+          var addText = '<h5><a>#' + proposalID + ' '
+          + x[8] + "</a><h5><a>Description</a><p>" + x[2] + ' <button data-id="' +
+          proposalID + '" class="float-right voteForProposal">'
+          + 'Vote</button></p><hr /></h5>';
 
-            if (x[9] !== '0x0000000000000000000000000000000000000000'){
-              el('#proposals').innerHTML += addImageText
-            } else {
-              el('#proposals').innerHTML += addText
-            }
+          if (x[9] !== '0x0000000000000000000000000000000000000000'){
+            el('#proposals').innerHTML += addImageText
+          } else {
+            el('#proposals').innerHTML += addText
           }
-          return cb;
         }
+        return cb;
+      }
 
-        // draw the proposals submitted
-        instance.numProposals().then((inputProposals) => {
-          el('#proposals').innerHTML = ''
-          for(proposalID = 0; proposalID <= inputProposals; proposalID++) {
-            instance.proposals(proposalID).then(create_cb(proposalID))
-          }
-        })
+      // draw the proposals submitted
+      instance.numProposals().then((inputProposals) => {
+        el('#proposals').innerHTML = ''
+        for(proposalID = 0; proposalID <= inputProposals; proposalID++) {
+          instance.proposals(proposalID).then(create_cb(proposalID))
+        }
       })
     })
   },
