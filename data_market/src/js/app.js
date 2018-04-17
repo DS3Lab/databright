@@ -199,15 +199,38 @@ App = {
 
     var databaseAssociationInstance;
 
-    App.contracts.DatabaseAssociation.deployed().then((instance) => {
-      databaseAssociationInstance = instance;
-      databaseAddress = $('#shardProposal_database').val();
-      description = $('#shardProposal_description').val();
-      hash = $('#shardProposal_hash').val();
-      requestedTokens = parseInt($('#shardProposal_requestedtokens').val());
-      curator = $('#shardProposal_curator').val();
-      databaseAssociationInstance.proposeAddShard(databaseAddress, description, hash, requestedTokens, curator);
-    })
+    function readFileContents (file) {
+      return new Promise((resolve) => {
+        const reader = new window.FileReader()
+        reader.onload = (event) => resolve({
+              path: file.name,
+              content: Buffer.from(event.target.result)
+          })
+        reader.readAsArrayBuffer(file)
+      })
+    }
+
+    let Buffer = ipfs.types.Buffer
+    Promise.all($('#shardProposal_files').fileinput('getFileStack').map((file) => readFileContents(file)))
+      .then(filesToUpload => ipfs.files.add(filesToUpload, { wrap: true }, (err, filesAdded) => {
+          if (err) { return onError(err) }
+
+          directory = filesAdded.find(function(file) {
+                        return file.hash == file.path;
+                      });
+          App.contracts.DatabaseAssociation.deployed().then((instance) => {
+          databaseAssociationInstance = instance;
+          databaseAddress = $('#shardProposal_database').val();
+          description = $('#shardProposal_description').val();
+          hash = directory.hash;
+          requestedTokens = parseInt($('#shardProposal_requestedtokens').val());
+          curator = $('#shardProposal_curator').val();
+
+          databaseAssociationInstance.proposeAddShard(databaseAddress, description, hash, requestedTokens, curator);
+        })
+        }
+      )
+    )
   },
 
   addDatabaseProposal: function(event) {
