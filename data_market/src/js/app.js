@@ -298,7 +298,6 @@ App = {
     App.contracts.DatabaseAssociation.deployed().then((instance) => {
       return instance.databaseFactory();
     }).then(function(result) {
-      console.log(result);
       App.contracts.SimpleDatabaseFactory.at(result).then(function(factoryInstance) {
         var i;
         for (i = 0; i < factoryInstance.numberOfDatabases; i++) { 
