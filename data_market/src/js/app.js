@@ -314,15 +314,18 @@ App = {
 
   populateDatabaseList: function() {
 
-    databaseAssociationInstance.databaseFactory().then(function(result) {
-      App.contracts.SimpleDatabaseFactory.at(result).then(function(factoryInstance) {
-        var i;
-        for (i = 0; i < factoryInstance.numberOfDatabases; i++) { 
-          db = factoryInstance.getDatabase(i);
-          console.log(db);
-          el('#shardProposal_database').innerHTML += '<option value="' + db[0] + ' >' + db[1] + '</option>';
-        }
-      });
+    var el = function(id){ return document.querySelector(id); }; // Selector
+
+    function addToProposalsView(db) {
+      el('#shardProposal_database').innerHTML += '<option value="' + db[0] + '" >' + db[1] + '</option>';
+    }
+
+    databaseFactoryInstance.numberOfDatabases().then(function(numDatabases) {
+      var i;
+      var dbPromise = databaseFactoryInstance
+      for (i = 0; i < numDatabases; i++) {
+        dbPromise = dbPromise.getDatabase(i).then(addToProposalsView);
+      }
     });
   },
 
