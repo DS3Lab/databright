@@ -1,6 +1,8 @@
 App = {
   web3Provider: null,
   contracts: {},
+  databaseAssociationInstance: null,
+  databaseFactoryInstance: null,
 
   init: function() {
     ipfs = new Ipfs(); //create new IPFS object
@@ -37,8 +39,6 @@ App = {
       // Set the provider for our contract.
       App.contracts.CuratorToken.setProvider(App.web3Provider);
 
-      // Use our contract to retieve and mark the adopted pets.
-      App.getBalances();
       });
 
       $.getJSON('SimpleDatabaseFactory.json', function(data) {
@@ -59,8 +59,7 @@ App = {
       App.contracts.SimpleDatabase.setProvider(App.web3Provider);
       });
 
-      App.updateAssociation();
-      App.loadProposals();
+      App.setAssociation();
     });
     return App.bindEvents();
   },
@@ -158,53 +157,46 @@ App = {
 
     var el = function(id){ return document.querySelector(id); }; // Selector
 
-    var databaseAssociationInstance;
+    var proposalNames = [];
+    // Callback function
+    
+    function display_and_filter_proposal(id) {
+      function display_and_filter_prop(prop) {
+        if (!prop[4]) { // prop.executed?
+          var shardProposalText = '<h5><a>#' + id + ' '
+          + prop[2] + "</a><h5><a>Preview Image</a><p><img id=image_" + id + " src='https://ipfs.io/ipfs/" +
+          prop[8] +
+          "' width=227 height=227 crossorigin><button id='voteProposalBtn' data-id='" +
+          proposalID + "' class='float-right voteForProposal'>"
+          + 'Vote</button></p><hr /></h5>';
 
-    App.contracts.DatabaseAssociation.deployed().then((instance) => {
-      databaseAssociationInstance = instance;
-      var proposalNames = [];
-      // Callback function
-      
-      function display_and_filter_proposal(id) {
-        function display_and_filter_prop(prop) {
-          if (!prop[4]) { // prop.executed?
-            var shardProposalText = '<h5><a>#' + id + ' '
-            + prop[2] + "</a><h5><a>Preview Image</a><p><img id=image_" + id + " src='https://ipfs.io/ipfs/" +
-            prop[8] +
-            "' width=227 height=227 crossorigin><button id='voteProposalBtn' data-id='" +
-            proposalID + "' class='float-right voteForProposal'>"
-            + 'Vote</button></p><hr /></h5>';
+          var databaseProposalText = '<h5><a>#' + id + ' '
+          + prop[8] + "</a><h5><a>Description</a><p>" + prop[2] + ' <button id="voteProposalBtn" data-id="' +
+          id + '" class="float-right voteForProposal">'
+          + 'Vote</button></p><hr /></h5>';
 
-            var databaseProposalText = '<h5><a>#' + id + ' '
-            + prop[8] + "</a><h5><a>Description</a><p>" + prop[2] + ' <button id="voteProposalBtn" data-id="' +
-            id + '" class="float-right voteForProposal">'
-            + 'Vote</button></p><hr /></h5>';
-
-            if (prop[11] == 1) { // Is this a database proposal?
-              el('#proposals').innerHTML += databaseProposalText
-            } else if (prop[11] == 2) { // Is this a shard proposal?
-              el('#proposals').innerHTML += shardProposalText
-            } else  {
-              console.log("Can't display proposal " + id + ".(Unknown state of proposal)")
-            }
+          if (prop[11] == 1) { // Is this a database proposal?
+            el('#proposals').innerHTML += databaseProposalText
+          } else if (prop[11] == 2) { // Is this a shard proposal?
+            el('#proposals').innerHTML += shardProposalText
+          } else  {
+            console.log("Can't display proposal " + id + ".(Unknown state of proposal)")
           }
         }
-        return display_and_filter_prop;
       }
+      return display_and_filter_prop;
+    }
 
-      // draw the proposals submitted
-      instance.numProposals().then((inputProposals) => {
-        el('#proposals').innerHTML = ''
-        for(proposalID = 0; proposalID <= inputProposals; proposalID++) {
-          instance.proposals(proposalID).then(display_and_filter_proposal(proposalID))
-        }
-      })
+    // draw the proposals submitted
+    databaseAssociationInstance.numProposals().then((inputProposals) => {
+      el('#proposals').innerHTML = ''
+      for(proposalID = 0; proposalID <= inputProposals; proposalID++) {
+        databaseAssociationInstance.proposals(proposalID).then(display_and_filter_proposal(proposalID))
+      }
     })
   },
 
   addShardProposal: function(event) {
-
-    var databaseAssociationInstance;
 
     function readFileContents (file) {
       return new Promise((resolve) => {
@@ -225,8 +217,6 @@ App = {
           directory = filesAdded.find(function(file) {
                         return file.hash == file.path;
                       });
-          App.contracts.DatabaseAssociation.deployed().then((instance) => {
-          databaseAssociationInstance = instance;
           databaseAddress = $('#shardProposal_database').val();
           description = $('#shardProposal_description').val();
           hash = directory.hash;
@@ -234,29 +224,30 @@ App = {
           curator = $('#shardProposal_curator').val();
 
           databaseAssociationInstance.proposeAddShard(databaseAddress, description, hash, requestedTokens, curator);
-        })
         }
       )
     )
   },
 
   addDatabaseProposal: function(event) {
-
-    var databaseAssociationInstance;
-
-    App.contracts.DatabaseAssociation.deployed().then((instance) => {
-      databaseAssociationInstance = instance;
-      name = $('#databaseProposal_name').val();
-      description = $('#databaseProposal_description').val();
-      databaseAssociationInstance.proposeAddDatabase(name, description);
-    })
+    name = $('#databaseProposal_name').val();
+    description = $('#databaseProposal_description').val();
+    databaseAssociationInstance.proposeAddDatabase(name, description);
   },
 
-  updateAssociation: (event) => {
-    var databaseAssociationInstance;
+  setAssociation: (event) => {
     App.contracts.DatabaseAssociation.deployed().then(function(instance) {
       databaseAssociationInstance = instance;
       $('#associationAddress').text(databaseAssociationInstance.address);
+
+      App.getBalances();
+      App.loadProposals();
+
+      return instance.databaseFactory();
+    }).then(function(factory) {
+      App.contracts.SimpleDatabaseFactory.at(factory).then(function(instance) {
+        databaseFactoryInstance = instance;
+      })
     });
   },
 
@@ -301,10 +292,8 @@ App = {
       }
 
       var account = accounts[0];
-      App.contracts.DatabaseAssociation.deployed().then((instance) => {
-        databaseAssociationInstance = instance;
-        return instance.sharesTokenAddress();
-      }).then(function(result) {
+
+      databaseAssociationInstance.sharesTokenAddress().then(function(result) {
         App.contracts.CuratorToken.at(result).then(function(instance) {
         curatorTokenInstance = instance;
 
@@ -325,9 +314,7 @@ App = {
 
   populateDatabaseList: function() {
 
-    App.contracts.DatabaseAssociation.deployed().then((instance) => {
-      return instance.databaseFactory();
-    }).then(function(result) {
+    databaseAssociationInstance.databaseFactory().then(function(result) {
       App.contracts.SimpleDatabaseFactory.at(result).then(function(factoryInstance) {
         var i;
         for (i = 0; i < factoryInstance.numberOfDatabases; i++) { 
@@ -340,9 +327,7 @@ App = {
   },
 
   voteOnProposal: function(proposalID, supportsProposal) {
-    App.contracts.DatabaseAssociation.deployed().then((instance) => {
-      instance.vote(proposalID, supportsProposal);
-    })
+    databaseAssociationInstance.vote(proposalID, supportsProposal);
   }
 };
 
