@@ -165,37 +165,38 @@ App = {
       var proposalNames = [];
       // Callback function
       
-      function create_cb(proposalID) {
-        
-        function cb(x) {
-          var shardProposalText = '<h5><a>#' + proposalID + ' '
-          + x[2] + "</a><h5><a>Preview Image</a><p><img id=image_" + proposalID + " src='https://ipfs.io/ipfs/" +
-          x[8] +
-          "' width=227 height=227 crossorigin><button id='voteProposalBtn' data-id='" +
-          proposalID + "' class='float-right voteForProposal'>"
-          + 'Vote</button></p><hr /></h5>';
+      function display_and_filter_proposal(id) {
+        function display_and_filter_prop(prop) {
+          if (!prop[4]) { // prop.executed?
+            var shardProposalText = '<h5><a>#' + id + ' '
+            + prop[2] + "</a><h5><a>Preview Image</a><p><img id=image_" + id + " src='https://ipfs.io/ipfs/" +
+            prop[8] +
+            "' width=227 height=227 crossorigin><button id='voteProposalBtn' data-id='" +
+            proposalID + "' class='float-right voteForProposal'>"
+            + 'Vote</button></p><hr /></h5>';
 
-          var databaseProposalText = '<h5><a>#' + proposalID + ' '
-          + x[8] + "</a><h5><a>Description</a><p>" + x[2] + ' <button id="voteProposalBtn" data-id="' +
-          proposalID + '" class="float-right voteForProposal">'
-          + 'Vote</button></p><hr /></h5>';
+            var databaseProposalText = '<h5><a>#' + id + ' '
+            + prop[8] + "</a><h5><a>Description</a><p>" + prop[2] + ' <button id="voteProposalBtn" data-id="' +
+            id + '" class="float-right voteForProposal">'
+            + 'Vote</button></p><hr /></h5>';
 
-          if (x[11] == 1) { // Is this a database proposal?
-            el('#proposals').innerHTML += databaseProposalText
-          } else if (x[11] == 2) { // Is this a shard proposal?
-            el('#proposals').innerHTML += shardProposalText
-          } else  {
-            console.log("Can't display proposal " + proposalID + ".(Unknown state of proposal)")
+            if (prop[11] == 1) { // Is this a database proposal?
+              el('#proposals').innerHTML += databaseProposalText
+            } else if (prop[11] == 2) { // Is this a shard proposal?
+              el('#proposals').innerHTML += shardProposalText
+            } else  {
+              console.log("Can't display proposal " + id + ".(Unknown state of proposal)")
+            }
           }
         }
-        return cb;
+        return display_and_filter_prop;
       }
 
       // draw the proposals submitted
       instance.numProposals().then((inputProposals) => {
         el('#proposals').innerHTML = ''
         for(proposalID = 0; proposalID <= inputProposals; proposalID++) {
-          instance.proposals(proposalID).then(create_cb(proposalID))
+          instance.proposals(proposalID).then(display_and_filter_proposal(proposalID))
         }
       })
     })
