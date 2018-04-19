@@ -336,6 +336,12 @@ App = {
         }
       });
     });
+  },
+
+  voteOnProposal: function(proposalID, supportsProposal) {
+    App.contracts.DatabaseAssociation.deployed().then((instance) => {
+      instance.vote(proposalID, supportsProposal);
+    })
   }
 };
 
