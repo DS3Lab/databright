@@ -266,13 +266,12 @@ contract DatabaseAssociation is Ownable {
                 require(p.recipient.call.value(p.amount)(transactionBytecode));
             }
 
-            p.executed = true;
             p.proposalPassed = true;
         } else {
             // Proposal failed
             p.proposalPassed = false;
         }
-
+        p.executed = true;
         // Fire Events
         ProposalTallied(proposalNumber, yea - nay, quorum, p.proposalPassed);
     }
