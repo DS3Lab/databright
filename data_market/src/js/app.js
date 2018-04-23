@@ -163,7 +163,7 @@ App = {
     
     function display_and_filter_proposal(id) {
       function display_and_filter_prop(prop) {
-        if (!prop[4]) { // prop.executed?
+        if (!prop[4] && prop[3]*1000 >= Date.now()) { // prop.executed and deadline didn't pass yet
           dbName = App.dbAddressToNameDict[prop[0]]
           votingDeadline = new Date(prop[3] * 1000).format('d-m-Y h:i:s')
           voteButtonText = '<button id="voteProposalBtn" data-id="' +
