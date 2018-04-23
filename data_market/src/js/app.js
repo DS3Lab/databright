@@ -3,6 +3,7 @@ App = {
   contracts: {},
   databaseAssociationInstance: null,
   databaseFactoryInstance: null,
+  dbAddressToNameDict: null,
 
   init: function() {
     ipfs = new Ipfs(); //create new IPFS object
@@ -163,17 +164,17 @@ App = {
     function display_and_filter_proposal(id) {
       function display_and_filter_prop(prop) {
         if (!prop[4]) { // prop.executed?
-          var shardProposalText = '<h5><a>#' + id + ' '
-          + prop[2] + "</a><h5><a>Preview Image</a><p><img id=image_" + id + " src='https://ipfs.io/ipfs/" +
-          prop[8] +
-          "' width=227 height=227 crossorigin><button id='voteProposalBtn' data-id='" +
-          proposalID + "' class='float-right voteForProposal'>"
-          + 'Vote</button></p><hr /></h5>';
+          dbName = App.dbAddressToNameDict[prop[0]]
+          votingDeadline = new Date(prop[3] * 1000).format('d-m-Y h:i:s')
+          voteButtonText = '<button id="voteProposalBtn" data-id="' +
+          proposalID + '" class="float-right voteForProposal">Vote</button></p><hr /></h5>';
 
-          var databaseProposalText = '<h5><a>#' + id + ' '
-          + prop[8] + "</a><h5><a>Description</a><p>" + prop[2] + ' <button id="voteProposalBtn" data-id="' +
-          id + '" class="float-right voteForProposal">'
-          + 'Vote</button></p><hr /></h5>';
+          var shardProposalText = '<h5><a>#' + id + ' Add shard to "'
+          + dbName + '" database: ' + prop[2] + '</a></h5><p>Voting ends at: '
+          + votingDeadline + '<p>' + voteButtonText
+          
+          var databaseProposalText = '<h5><a>#' + id + ' Create database: ' + prop[8] + '</a></h5><p>' + prop[2] + '</a><h5><p>Voting ends at: '
+          + votingDeadline + '<p>'+ voteButtonText
 
           if (prop[11] == 1) { // Is this a database proposal?
             el('#proposals').innerHTML += databaseProposalText
@@ -188,7 +189,7 @@ App = {
     }
 
     // draw the proposals submitted
-    databaseAssociationInstance.numProposals().then((inputProposals) => {
+    App.reloadDatabaseDict().then(() => databaseAssociationInstance.numProposals()).then((inputProposals) => {
       el('#proposals').innerHTML = ''
       for(proposalID = 0; proposalID <= inputProposals; proposalID++) {
         databaseAssociationInstance.proposals(proposalID).then(display_and_filter_proposal(proposalID))
@@ -241,12 +242,12 @@ App = {
       $('#associationAddress').text(databaseAssociationInstance.address);
 
       App.getBalances();
-      App.loadProposals();
 
       return instance.databaseFactory();
     }).then(function(factory) {
       App.contracts.SimpleDatabaseFactory.at(factory).then(function(instance) {
         databaseFactoryInstance = instance;
+        App.loadProposals();
       })
     });
   },
@@ -331,6 +332,22 @@ App = {
 
   voteOnProposal: function(proposalID, supportsProposal) {
     databaseAssociationInstance.vote(proposalID, supportsProposal);
+  },
+
+  reloadDatabaseDict: function() {
+    App.dbAddressToNameDict = {}
+    return databaseFactoryInstance.numberOfDatabases().then(function(numDatabases) {
+      var i;
+      var dbPromise = databaseFactoryInstance
+      for (i = 0; i < numDatabases; i++) {
+        dbPromise = dbPromise.getDatabase(i).then(function(db) {
+          App.dbAddressToNameDict[db[0]] = db[1];
+        });
+      }
+      App.dbAddressToNameDict.size = numDatabases;
+
+      return dbPromise;
+    });
   }
 };
 
