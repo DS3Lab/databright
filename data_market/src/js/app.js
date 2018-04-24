@@ -149,8 +149,13 @@ App = {
     });
 
     // vote buttons for each proposal
-    $('#proposals').on('click', '#voteProposalBtn', function(){
-      console.log(this.getAttribute("data-id"));
+    $('#proposals').on('click', '#voteDatabaseProposalBtn', function(){
+      el("#databaseProposalVoting").style.display = 'block';
+      el("#proposalOverview").style.display = 'none';
+    });
+    $('#proposals').on('click', '#voteShardProposalBtn', function(){x§
+      el("#shardProposalVoting").style.display = 'block';
+      el("#proposalOverview").style.display = 'none';
     });
   },
 
@@ -166,15 +171,15 @@ App = {
         if (!prop[4] && prop[3]*1000 >= Date.now()) { // prop.executed and deadline didn't pass yet
           dbName = App.dbAddressToNameDict[prop[0]]
           votingDeadline = new Date(prop[3] * 1000).format('d-m-Y h:i:s')
-          voteButtonText = '<button id="voteProposalBtn" data-id="' +
-          proposalID + '" class="float-right voteForProposal">Vote</button></p><hr /></h5>';
 
           var shardProposalText = '<h5><a>#' + id + ' Add shard to "'
           + dbName + '" database: ' + prop[2] + '</a></h5><p>Voting ends at: '
-          + votingDeadline + '<p>' + voteButtonText
+          + votingDeadline + '<p>' + '<button id="voteShardProposalBtn" data-id="' +
+          proposalID + '" class="float-right voteForProposal">Vote</button></p><hr /></h5>';
           
           var databaseProposalText = '<h5><a>#' + id + ' Create database: ' + prop[8] + '</a></h5><p>' + prop[2] + '</a><h5><p>Voting ends at: '
-          + votingDeadline + '<p>'+ voteButtonText
+          + votingDeadline + '<p>'+ '<button id="voteDatabaseProposalBtn" data-id="' +
+          proposalID + '" class="float-right voteForProposal">Vote</button></p><hr /></h5>';
 
           if (prop[11] == 1) { // Is this a database proposal?
             el('#proposals').innerHTML += databaseProposalText
