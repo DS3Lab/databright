@@ -150,10 +150,11 @@ App = {
 
     // vote buttons for each proposal
     $('#proposals').on('click', '#voteDatabaseProposalBtn', function(){
+      App.loadDatabaseProposalVoting(parseInt(this.getAttribute("data-id")));
       el("#databaseProposalVoting").style.display = 'block';
       el("#proposalOverview").style.display = 'none';
     });
-    $('#proposals').on('click', '#voteShardProposalBtn', function(){x§
+    $('#proposals').on('click', '#voteShardProposalBtn', function(){
       el("#shardProposalVoting").style.display = 'block';
       el("#proposalOverview").style.display = 'none';
     });
@@ -175,11 +176,11 @@ App = {
           var shardProposalText = '<h5><a>#' + id + ' Add shard to "'
           + dbName + '" database: ' + prop[2] + '</a></h5><p>Voting ends at: '
           + votingDeadline + '<p>' + '<button id="voteShardProposalBtn" data-id="' +
-          proposalID + '" class="float-right voteForProposal">Vote</button></p><hr /></h5>';
+          id + '" class="float-right voteForProposal">Vote</button></p><hr />';
           
-          var databaseProposalText = '<h5><a>#' + id + ' Create database: ' + prop[8] + '</a></h5><p>' + prop[2] + '</a><h5><p>Voting ends at: '
+          var databaseProposalText = '<h5><a>#' + id + ' Create database: ' + prop[8] + '</a></h5><p>' + prop[2] + '</a><p>Voting ends at: '
           + votingDeadline + '<p>'+ '<button id="voteDatabaseProposalBtn" data-id="' +
-          proposalID + '" class="float-right voteForProposal">Vote</button></p><hr /></h5>';
+          id + '" class="float-right voteForProposal">Vote</button></p><hr />';
 
           if (prop[11] == 1) { // Is this a database proposal?
             el('#proposals').innerHTML += databaseProposalText
@@ -238,7 +239,7 @@ App = {
   addDatabaseProposal: function(event) {
     name = $('#databaseProposal_name').val();
     description = $('#databaseProposal_description').val();
-    databaseAssociationInstance.proposeAddDatabase(name, description);
+    databaseAssociationInstance.proposeAddDatabase(description, name);
   },
 
   setAssociation: (event) => {
@@ -353,6 +354,16 @@ App = {
 
       return dbPromise;
     });
+  },
+
+  loadDatabaseProposalVoting: function(proposalID) {
+
+    databaseAssociationInstance.proposals(proposalID).then(function(prop){
+      $('#databaseProposalVoting_dbtitle').text(prop[8]);
+      $('#databaseProposalVoting_description').text(prop[2]);
+      $('#databaseProposalVoting_deadline').text(new Date(prop[3] * 1000).format('d-m-Y h:i:s'));
+    });
+    
   }
 };
 

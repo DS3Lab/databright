@@ -100,11 +100,16 @@
     <br /><br />
     </div>
     <div id="databaseProposalVoting", style="display:none;">
-      <h4>Vote on adding shard</h4>
+      <h4>Vote on adding database</h4>
 
-      
+      <label>Proposal to create database:</label>
+      <span id="databaseProposalVoting_dbtitle"></span>
+      <p><span id="databaseProposalVoting_description"></span>
 
-      <button id="yayDatabaseProposal">Yay</button>
+      <p><label>Voting ends at:</label> <span id="databaseProposalVoting_deadline"></span>
+ 
+      <p><label>Accept this proposal?</label>
+      <p><button id="yayDatabaseProposal">Yay</button>
       <button id="nayDatabaseProposal">Nay</button>
       
       <button id="fromVotingGoToProposals">View Proposals</button>
