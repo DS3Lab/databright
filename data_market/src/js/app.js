@@ -158,6 +158,19 @@ App = {
       el("#shardProposalVoting").style.display = 'block';
       el("#proposalOverview").style.display = 'none';
     });
+
+    // Voting buttons
+    el("#yayDatabaseProposal").addEventListener('click', () => {
+      el("#databaseProposalVoting").style.display = 'none';
+      el("#proposalOverview").style.display = 'block';
+      App.voteOnProposal(parseInt($('#databaseProposalVoting_id').val()),true);
+    });
+
+    el("#nayDatabaseProposal").addEventListener('click', () => {
+      el("#databaseProposalVoting").style.display = 'none';
+      el("#proposalOverview").style.display = 'block';
+      App.voteOnProposal(parseInt($('#databaseProposalVoting_id').val()),false);
+    });
   },
 
   loadProposals: function() {
@@ -359,6 +372,7 @@ App = {
   loadDatabaseProposalVoting: function(proposalID) {
 
     databaseAssociationInstance.proposals(proposalID).then(function(prop){
+      $('#databaseProposalVoting_id').text(proposalID);
       $('#databaseProposalVoting_dbtitle').text(prop[8]);
       $('#databaseProposalVoting_description').text(prop[2]);
       $('#databaseProposalVoting_deadline').text(new Date(prop[3] * 1000).format('d-m-Y h:i:s'));
