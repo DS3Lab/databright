@@ -115,6 +115,24 @@
       <button id="fromVotingGoToProposals">View Proposals</button>
       <hr />
     </div>
+    <div id="shardProposalVoting", style="display:none;">
+      <h4>Vote on adding shard</h4>
+
+      <label>Proposal #<span id="shardProposalVoting_id"></span> to add files to database:</label>
+      <label>Target database:</label><span id="shardProposalVoting_dbtitle"></span>
+      <p><label>Data description:</label><span id="shardProposalVoting_description"></span>
+
+      <p><label>Files proposed:</label><input id="shardProposalVoting_files" name="shardProposalVoting_files[]" type="file" class="file" multiple data-show-upload="false" data-show-caption="true" data-msg-placeholder="Select {files} for upload..." readonly="true">
+      <p><label>Requested reward:</label><span id="shardProposalVoting_requestedReward"></span> Curator Tokens
+      <p><label>Voting ends at:</label> <span id="shardProposalVoting_deadline"></span>
+ 
+      <p><label>Accept this proposal?</label>
+      <p><button id="yayDatabaseProposal">Yay</button>
+      <button id="nayDatabaseProposal">Nay</button>
+      
+      <button id="fromVotingGoToProposals">View Proposals</button>
+      <hr />
+    </div>
     <div id="ballotActiveResponse" style="padding: 20px; border: 1px solid #9b4dca;"></div>
 
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->

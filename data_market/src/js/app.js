@@ -4,9 +4,11 @@ App = {
   databaseAssociationInstance: null,
   databaseFactoryInstance: null,
   dbAddressToNameDict: null,
+  ipfsNodeAddress: 'localhost',
+  ipfsNodePort: '5001',
 
   init: function() {
-    ipfs = window.IpfsApi('/ip4/127.0.0.1/tcp/5001')
+    ipfs = window.IpfsApi({host: App.ipfsNodeAddress, port: App.ipfsNodePort, protocol: 'http'})
     return App.initWeb3();
   },
 
@@ -155,6 +157,7 @@ App = {
       el("#proposalOverview").style.display = 'none';
     });
     $('#proposals').on('click', '#voteShardProposalBtn', function(){
+      App.loadShardProposalVoting(parseInt(this.getAttribute("data-id")));
       el("#shardProposalVoting").style.display = 'block';
       el("#proposalOverview").style.display = 'none';
     });
@@ -377,6 +380,32 @@ App = {
       $('#databaseProposalVoting_description').text(prop[2]);
       $('#databaseProposalVoting_deadline').text(new Date(prop[3] * 1000).format('d-m-Y h:i:s'));
     });
+    
+  },
+
+  loadShardProposalVoting: function(proposalID) {
+
+    function getIpfsBaseURL() {
+      return 'https://' + App.ipfsNodeAddress + ':' + App.ipfsNodePort + '/ipfs/'
+    }
+
+    databaseAssociationInstance.proposals(proposalID).then(function(prop){
+      $('#shardProposalVoting_id').text(proposalID);
+      $('#shardProposalVoting_description').text(prop[2]);
+      $('#shardProposalVoting_requestedReward').text(prop[9]);
+      $('#shardProposalVoting_deadline').text(new Date(prop[3] * 1000).format('d-m-Y h:i:s'));
+      ipfsBaseURL = getIpfsBaseURL()
+      directoryRefpath = prop[8]
+      ipfs.ls(directoryRefpath, (err, filesAdded) => {
+          if (err) { throw err }
+          filesAdded.map((file) => {
+            //GET ipfsBaseURL + file.path and display it
+          })
+        });
+    });
+    //TODO Load dbtitle
+    //TODO Load read-only file view
+
     
   }
 };
