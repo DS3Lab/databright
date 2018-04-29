@@ -6,7 +6,7 @@ App = {
   dbAddressToNameDict: null,
 
   init: function() {
-    ipfs = new Ipfs(); //create new IPFS object
+    ipfs = window.IpfsApi('/ip4/127.0.0.1/tcp/5001')
     return App.initWeb3();
   },
 
@@ -231,11 +231,11 @@ App = {
 
     let Buffer = ipfs.types.Buffer
     Promise.all($('#shardProposal_files').fileinput('getFileStack').map((file) => readFileContents(file)))
-      .then(filesToUpload => ipfs.files.add(filesToUpload, { wrap: true }, (err, filesAdded) => {
-          if (err) { return onError(err) }
+      .then(filesToUpload => ipfs.files.add(filesToUpload, { wrapWithDirectory: true }, (err, filesAdded) => {
+          if (err) { throw err }
 
           directory = filesAdded.find(function(file) {
-                        return file.hash == file.path;
+                        return "" == file.path;
                       });
           databaseAddress = $('#shardProposal_database').val();
           description = $('#shardProposal_description').val();
