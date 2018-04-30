@@ -6,6 +6,7 @@ App = {
   dbAddressToNameDict: null,
   ipfsNodeAddress: 'localhost',
   ipfsNodePort: '5001',
+  ipfsGatewayURL: 'http://localhost:8080/ipfs/',
 
   init: function() {
     ipfs = window.IpfsApi({host: App.ipfsNodeAddress, port: App.ipfsNodePort, protocol: 'http'})
@@ -385,30 +386,36 @@ App = {
 
   loadShardProposalVoting: function(proposalID) {
 
-    function getIpfsBaseURL() {
-      return 'https://' + App.ipfsNodeAddress + ':' + App.ipfsNodePort + '/ipfs/'
-    }
-
     databaseAssociationInstance.proposals(proposalID).then(function(prop){
       $('#shardProposalVoting_id').text(proposalID);
       $('#shardProposalVoting_description').text(prop[2]);
       $('#shardProposalVoting_requestedReward').text(prop[9]);
       $('#shardProposalVoting_deadline').text(new Date(prop[3] * 1000).format('d-m-Y h:i:s'));
-      ipfsBaseURL = getIpfsBaseURL()
+
       directoryRefpath = prop[8]
       ipfs.ls(directoryRefpath, (err, filesAdded) => {
-          if (err) { throw err }
-          filesAdded.map((file) => {
-            //GET ipfsBaseURL + file.path and display it
-          })
+        if (err) { throw err }
+        fileUrls = filesAdded.map((file) => { return App.ipfsGatewayURL + file.path;})
+        previewConfigs = filesAdded.map((file) => { return {caption: file.name, downloadUrl: App.ipfsGatewayURL + file.path, size: file.size, width: "120px"};})
+        $('#shardProposalVoting_files').fileinput({
+          initialPreview: fileUrls,
+          initialPreviewAsData: true,
+          initialPreviewConfig: previewConfigs,
+          overwriteInitial: false,
+          showRemove: false,
+          showUpload: false,
+          showBrowse: false
         });
+
+        
+      });
     });
     //TODO Load dbtitle
     //TODO Load read-only file view
 
     
   }
-};
+}
 
 $(function() {
   $(window).on( "load",App.init());
