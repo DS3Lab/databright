@@ -165,15 +165,27 @@ App = {
 
     // Voting buttons
     el("#yayDatabaseProposal").addEventListener('click', () => {
+      App.voteOnProposal(parseInt($('#databaseProposalVoting_id').text()),true);
       el("#databaseProposalVoting").style.display = 'none';
       el("#proposalOverview").style.display = 'block';
-      App.voteOnProposal(parseInt($('#databaseProposalVoting_id').val()),true);
     });
 
     el("#nayDatabaseProposal").addEventListener('click', () => {
+      App.voteOnProposal(parseInt($('#databaseProposalVoting_id').text()),false);
       el("#databaseProposalVoting").style.display = 'none';
       el("#proposalOverview").style.display = 'block';
-      App.voteOnProposal(parseInt($('#databaseProposalVoting_id').val()),false);
+    });
+
+    el("#yayShardProposal").addEventListener('click', () => {
+      App.voteOnProposal(parseInt($('#shardProposalVoting_id').text()),true);
+      el("#shardProposalVoting").style.display = 'none';
+      el("#proposalOverview").style.display = 'block';
+    });
+
+    el("#nayShardProposal").addEventListener('click', () => {
+      App.voteOnProposal(parseInt($('#shardProposalVoting_id').text()),false);
+      el("#shardProposalVoting").style.display = 'none';
+      el("#proposalOverview").style.display = 'block';
     });
   },
 
