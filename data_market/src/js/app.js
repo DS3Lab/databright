@@ -391,7 +391,11 @@ App = {
       $('#shardProposalVoting_description').text(prop[2]);
       $('#shardProposalVoting_requestedReward').text(prop[9]);
       $('#shardProposalVoting_deadline').text(new Date(prop[3] * 1000).format('d-m-Y h:i:s'));
+      dbNam = App.contracts.SimpleDatabase.at(prop[0]).then((db) => {return db.name();}).then((name) => {
+        $('#shardProposalVoting_dbtitle').text(name);
+      });
 
+      
       directoryRefpath = prop[8]
       ipfs.ls(directoryRefpath, (err, filesAdded) => {
         if (err) { throw err }
@@ -405,15 +409,9 @@ App = {
           showRemove: false,
           showUpload: false,
           showBrowse: false
-        });
-
-        
+        }); 
       });
-    });
-    //TODO Load dbtitle
-    //TODO Load read-only file view
-
-    
+    });    
   }
 }
 
