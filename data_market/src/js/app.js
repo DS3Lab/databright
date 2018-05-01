@@ -123,16 +123,12 @@ App = {
           el("#databaseProposalCreation").style.display = 'none';
           el("#proposalOverview").style.display = 'block';
         });
-    // switch to proposal page
-    el("#fromShardGoToProposals").addEventListener('click', function(){
+    // go back to proposal page
+    $(".goToProposals").on('click', function(){
       el("#shardProposalCreation").style.display = 'none';
-      el("#proposalOverview").style.display = 'block';
-      App.loadProposals();
-    });
-
-    // switch to proposal page
-    el("#fromDatabaseGoToProposals").addEventListener('click', function(){
       el("#databaseProposalCreation").style.display = 'none';
+      el("#shardProposalVoting").style.display = 'none';
+      el("#databaseProposalVoting").style.display = 'none';
       el("#proposalOverview").style.display = 'block';
       App.loadProposals();
     });
