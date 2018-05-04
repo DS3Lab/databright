@@ -158,6 +158,9 @@ App = {
       el("#shardProposalVoting").style.display = 'block';
       el("#proposalOverview").style.display = 'none';
     });
+    $('#proposals').on('click', '#executeProposalBtn', function(){
+      databaseAssociationInstance.executeProposal(parseInt(this.getAttribute("data-id")), 0);
+    });
 
     // Voting buttons
     el("#yayDatabaseProposal").addEventListener('click', () => {
@@ -194,19 +197,35 @@ App = {
     
     function display_and_filter_proposal(id) {
       function display_and_filter_prop(prop) {
-        if (!prop[4] && prop[3]*1000 >= Date.now()) { // prop.executed and deadline didn't pass yet
+        if (!prop[4]) { // not yet executed && prop[3]*1000 >= Date.now()) { // prop.executed and deadline didn't pass yet
+
           dbName = App.dbAddressToNameDict[prop[0]]
           votingDeadline = new Date(prop[3] * 1000).format('d-m-Y h:i:s')
+          var shardProposalText;
+          var databaseProposalText;
+          if (prop[3]*1000 >= Date.now()) { // voting deadline has not yet passed
+            // Proposal is still open to voting
+            shardProposalText = '<h5><a>#' + id + ' Add shard to "'
+            + dbName + '" database: ' + prop[2] + '</a></h5><p>Voting ends at: '
+            + votingDeadline + '<p>' + '<button id="voteShardProposalBtn" data-id="' +
+            id + '" class="float-right voteForProposal">Vote</button></p><hr />';
 
-          var shardProposalText = '<h5><a>#' + id + ' Add shard to "'
-          + dbName + '" database: ' + prop[2] + '</a></h5><p>Voting ends at: '
-          + votingDeadline + '<p>' + '<button id="voteShardProposalBtn" data-id="' +
-          id + '" class="float-right voteForProposal">Vote</button></p><hr />';
+            databaseProposalText = '<h5><a>#' + id + ' Create database: ' + prop[8] + '</a></h5><p>' + prop[2] + '</a><p>Voting ends at: '
+            + votingDeadline + '<p>'+ '<button id="voteDatabaseProposalBtn" data-id="' +
+            id + '" class="float-right voteForProposal">Vote</button></p><hr />';
+          } else {
+            // Proposal voting is closed, proposal can be executed
+            executableProposalDescription = 'Voting already ended at: '
+            + votingDeadline + '<p>' + '<button id="executeProposalBtn" data-id="' +
+            id + '" class="float-right voteForProposal">Execute</button></p><hr />';
+
+            shardProposalText = '<h5><a>#' + id + ' Add shard to "' + dbName +
+            '" database: ' + prop[2] + '</a></h5><p>' + executableProposalDescription
+
+            databaseProposalText = '<h5><a>#' + id + ' Create database: ' + prop[8] +
+            '</a></h5><p>' + executableProposalDescription
+          }
           
-          var databaseProposalText = '<h5><a>#' + id + ' Create database: ' + prop[8] + '</a></h5><p>' + prop[2] + '</a><p>Voting ends at: '
-          + votingDeadline + '<p>'+ '<button id="voteDatabaseProposalBtn" data-id="' +
-          id + '" class="float-right voteForProposal">Vote</button></p><hr />';
-
           if (prop[11] == 1) { // Is this a database proposal?
             el('#proposals').innerHTML += databaseProposalText
           } else if (prop[11] == 2) { // Is this a shard proposal?
