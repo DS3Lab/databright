@@ -371,12 +371,15 @@ App = {
       el('#shardProposal_database').innerHTML += '<option value="' + db[0] + '" >' + db[1] + '</option>';
     }
 
+    el('#shardProposal_database').innerHTML = ''
     databaseFactoryInstance.numberOfDatabases().then(function(numDatabases) {
+
+      var allPromises = [];
       var i;
-      var dbPromise = databaseFactoryInstance
       for (i = 0; i < numDatabases; i++) {
-        dbPromise = dbPromise.getDatabase(i).then(addToProposalsView);
+        allPromises.push(databaseFactoryInstance.getDatabase(i))
       }
+      Promise.all(allPromises).then((allDbs) => allDbs.map(addToProposalsView))
     });
   },
 
@@ -386,17 +389,19 @@ App = {
 
   reloadDatabaseDict: function() {
     App.dbAddressToNameDict = {}
-    return databaseFactoryInstance.numberOfDatabases().then(function(numDatabases) {
-      var i;
-      var dbPromise = databaseFactoryInstance
-      for (i = 0; i < numDatabases; i++) {
-        dbPromise = dbPromise.getDatabase(i).then(function(db) {
-          App.dbAddressToNameDict[db[0]] = db[1];
-        });
-      }
-      App.dbAddressToNameDict.size = numDatabases;
 
-      return dbPromise;
+    function assignToDict(db) {
+      App.dbAddressToNameDict[db[0]] = db[1];
+    }
+
+    return databaseFactoryInstance.numberOfDatabases().then(function(numDatabases) {
+
+      var allPromises = [];
+      var i;
+      for (i = 0; i < numDatabases; i++) {
+        allPromises.push(databaseFactoryInstance.getDatabase(i))
+      }
+      return Promise.all(allPromises).then((allDbs) => allDbs.map(assignToDict))
     });
   },
 
