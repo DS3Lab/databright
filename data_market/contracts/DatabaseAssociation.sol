@@ -245,9 +245,8 @@ contract DatabaseAssociation is Ownable {
             }
         }
 
-        require(quorum >= minimumQuorum); // Check if a minimum quorum has been reached
-
-        if (yea > nay) {
+        // Check if a minimum quorum has been reached and the quorum supports the proposals
+        if (quorum < minimumQuorum && yea > nay) {
             // Proposal passed; execute the transaction
 
             if (p.state == 1) {
@@ -268,10 +267,11 @@ contract DatabaseAssociation is Ownable {
 
             p.proposalPassed = true;
         } else {
-            // Proposal failed
+            // Proposal failed or the minimum quorum has not been reached
             p.proposalPassed = false;
         }
         p.executed = true;
+
         // Fire Events
         ProposalTallied(proposalNumber, yea - nay, quorum, p.proposalPassed);
     }

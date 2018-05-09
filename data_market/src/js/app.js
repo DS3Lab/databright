@@ -200,7 +200,7 @@ App = {
         if (!prop[4]) { // not yet executed && prop[3]*1000 >= Date.now()) { // prop.executed and deadline didn't pass yet
 
           dbName = App.dbAddressToNameDict[prop[0]]
-          votingDeadline = new Date(prop[3] * 1000).format('d-m-Y h:i:s')
+          votingDeadline = new Date(prop[3] * 1000).format('d-m-Y H:i:s')
           var shardProposalText;
           var databaseProposalText;
           if (prop[3]*1000 >= Date.now()) { // voting deadline has not yet passed
@@ -241,8 +241,12 @@ App = {
     // draw the proposals submitted
     App.reloadDatabaseDict().then(() => databaseAssociationInstance.numProposals()).then((inputProposals) => {
       el('#proposals').innerHTML = ''
-      for(proposalID = 0; proposalID <= inputProposals; proposalID++) {
-        databaseAssociationInstance.proposals(proposalID).then(display_and_filter_proposal(proposalID))
+      if (inputProposals == 0) {
+        el('#proposals').innerHTML = '<p>No proposals to display<p>'
+      } else {
+        for(proposalID = 0; proposalID <= inputProposals; proposalID++) {
+          databaseAssociationInstance.proposals(proposalID).then(display_and_filter_proposal(proposalID))
+        }
       }
     })
   },
@@ -376,10 +380,18 @@ App = {
 
       var allPromises = [];
       var i;
-      for (i = 0; i < numDatabases; i++) {
-        allPromises.push(databaseFactoryInstance.getDatabase(i))
+      if (numDatabases == 0) {
+        el('#shardProposal_database').innerHTML += '<option>No database available</option>';
+        el('#shardProposal_database').disabled = true;
+        el('#addShardProposal').disabled = true;
+      } else {
+        for (i = 0; i < numDatabases; i++) {
+          allPromises.push(databaseFactoryInstance.getDatabase(i))
+        }
+        Promise.all(allPromises).then((allDbs) => allDbs.map(addToProposalsView))
+        el('#shardProposal_database').disabled = false;
+        el('#addShardProposal').disabled = false;
       }
-      Promise.all(allPromises).then((allDbs) => allDbs.map(addToProposalsView))
     });
   },
 
