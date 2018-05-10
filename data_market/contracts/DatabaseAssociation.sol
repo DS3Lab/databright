@@ -246,7 +246,7 @@ contract DatabaseAssociation is Ownable {
         }
 
         // Check if a minimum quorum has been reached and the quorum supports the proposals
-        if (quorum < minimumQuorum && yea > nay) {
+        if (quorum >= minimumQuorum && yea > nay) {
             // Proposal passed; execute the transaction
 
             if (p.state == 1) {
