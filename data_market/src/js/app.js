@@ -195,8 +195,8 @@ App = {
     var proposalNames = [];
     // Callback function
     
-    function display_and_filter_proposal(id) {
-      function display_and_filter_prop(prop) {
+    function get_proposal_list_entry(id) {
+      function get_list_entry(prop) {
         if (!prop[4]) { // not yet executed && prop[3]*1000 >= Date.now()) { // prop.executed and deadline didn't pass yet
 
           dbName = App.dbAddressToNameDict[prop[0]]
@@ -227,27 +227,44 @@ App = {
           }
           
           if (prop[11] == 1) { // Is this a database proposal?
-            el('#proposals').innerHTML += databaseProposalText
+            return databaseProposalText;
           } else if (prop[11] == 2) { // Is this a shard proposal?
-            el('#proposals').innerHTML += shardProposalText
+            return shardProposalText;
           } else  {
             console.log("Can't display proposal " + id + ".(Unknown state of proposal)")
           }
         }
       }
-      return display_and_filter_prop;
+      return get_list_entry;
     }
 
     // draw the proposals submitted
     App.reloadDatabaseDict().then(() => databaseAssociationInstance.numProposals()).then((inputProposals) => {
       el('#proposals').innerHTML = ''
-      if (inputProposals == 0) {
-        el('#proposals').innerHTML = '<p>No proposals to display<p>'
-      } else {
-        for(proposalID = 0; proposalID <= inputProposals; proposalID++) {
-          databaseAssociationInstance.proposals(proposalID).then(display_and_filter_proposal(proposalID))
-        }
+
+      //for(proposalID = 0; proposalID <= inputProposals; proposalID++) {
+      //  databaseAssociationInstance.proposals(proposalID).then(return get_proposal_list_entry(proposalID))
+      //}
+      
+      
+
+      var allPromises = [];
+      var proposalID;
+      for (proposalID = 0; proposalID < inputProposals; proposalID++) {
+        allPromises.push(databaseAssociationInstance.proposals(proposalID).then(get_proposal_list_entry(proposalID)))
       }
+
+      Promise.all(allPromises).then(proposalsToShow => {
+        proposalsToShow.forEach(propText => {
+          if (typeof propText != 'undefined') {
+            el('#proposals').innerHTML += propText
+          }
+        })
+
+        if (el('#proposals').innerHTML == '') {
+        el('#proposals').innerHTML = '<p>No proposals to display<p>'
+        }
+      })
     })
   },
 
