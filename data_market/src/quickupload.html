@@ -14,126 +14,21 @@
           <label>Association</label>
           <p><span id="associationAddress">0x</span></p>
         </div>
-        <div class="column">
-          <label>Your Address</label>
-          <p><span id="accountAddress">0x</span></p>
-        </div>
-        <div class="column">
-          <label>Balance</label>
-          <p><span id="accountBalance">0</span> Curator Token</p>
-        </div>
       </div>
 
-    <div id="shardProposalCreation", style="display:none;">
-      <h4>Propose New Shard</h4>
+    <div id="shardProposalCreation", style="display:block;">
+      <h4>Quick Upload</h4>
 
       <div id="inputProposals">
         <select class="form-control" id="shardProposal_database" />
         
         <input type="text" id="shardProposal_description" maxLength="64" placeholder="Description" />
-        <input type="text" id="shardProposal_curator" maxLength="64" placeholder="Curator" />
-        <input type="number" id="shardProposal_requestedtokens" min="0" placeholder="Requested Tokens" />
         <input id="shardProposal_files" name="shardProposal_files[]" type="file" class="file" multiple data-show-upload="false" data-show-caption="true" data-msg-placeholder="Select {files} for upload...">
       </div>
 
-      <button id="addShardProposal">Add Proposal</button>
-      
-      <button class="goToProposals">View Proposals</button>
+      <button id="addShardProposal">Upload data</button>
       <hr />
     </div>
-    <div id="databaseProposalCreation", style="display:none;">
-      <h4>Propose New Database</h4>
-
-      <div id="databaseInputProposals">
-        <input type="text" id="databaseProposal_name" maxLength="64" placeholder="Name" />
-        <input type="text" id="databaseProposal_description" maxLength="64" placeholder="Description" />
-      </div>
-
-      <button id="addDatabaseProposal">Add Proposal</button>
-      
-      <button class="goToProposals">View Proposals</button>
-      <hr />
-    </div>
-    <div id="proposalOverview" style="display:block;">
-      <div class="row">
-        <div class="column column-50">
-          <h4>Proposals</h4>
-
-          <br />
-
-          <div id="proposals"></div>
-        </div>
-        <div class="column column-40 column-offset-10">
-          <h4>Manager</h4>
-
-          <hr />
-
-          <button id="goToShard">Add Data</button>
-          <button id="goToNewDatabase">New Database</button>
-          <button id="sendTokens">Send Tokens</button>
-
-          <br />
-
-          <br />
-
-          <label>Oracle Vote</label>
-
-          <input type="text" id="checkAddress" placeholder="Proposal ID">
-
-          <button id="aiEvaluate">Auto Evaluate</button>
-
-          <div id="aiResults"></div>
-
-          <hr />
-
-          <label>Delegate / Crowdsourcing</label>
-          <input type="text" id="delegateAddress" placeholder="Proposal ID">
-
-          <button id="delegateVote">Delegate My Vote</button>
-          
-        </div>
-
-      </div>
-
-      <br />
-
-    <br /><br />
-    </div>
-    <div id="databaseProposalVoting", style="display:none;">
-      <h4>Vote on adding database</h4>
-
-      <label>Proposal #<span id="databaseProposalVoting_id"></span> to create database:</label>
-      <span id="databaseProposalVoting_dbtitle"></span>
-      <p><span id="databaseProposalVoting_description"></span>
-
-      <p><label>Voting ends at:</label> <span id="databaseProposalVoting_deadline"></span>
- 
-      <p><label>Accept this proposal?</label>
-      <p><button id="yayDatabaseProposal">Yay</button>
-      <button id="nayDatabaseProposal">Nay</button>
-      
-      <button class="goToProposals">View Proposals</button>
-      <hr />
-    </div>
-    <div id="shardProposalVoting", style="display:none;">
-      <h4>Vote on adding shard</h4>
-
-      <label>Proposal #<span id="shardProposalVoting_id"></span> to add files to database:</label><span id="shardProposalVoting_dbtitle"></span>
-      <p><label>Data description:</label><span id="shardProposalVoting_description"></span>
-
-      <p><label>Files proposed:</label><input id="shardProposalVoting_files" name="shardProposalVoting_files[]" type="file" multiple readonly="true">
-      <p><label>Requested reward:</label><span id="shardProposalVoting_requestedReward"></span> Curator Tokens
-      <p><label>Voting ends at:</label> <span id="shardProposalVoting_deadline"></span>
- 
-      <p><label>Accept this proposal?</label>
-      <p><button id="yayShardProposal">Yay</button>
-      <button id="nayShardProposal">Nay</button>
-      
-      <button class="goToProposals">View Proposals</button>
-      <hr />
-    </div>
-    <div id="ballotActiveResponse" style="padding: 20px; border: 1px solid #9b4dca;"></div>
-
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.4.5/css/fileinput.min.css" media="all" rel="stylesheet" type="text/css" />
     <script src="js/jquery-3.3.1.js"></script>
@@ -149,6 +44,7 @@
     <script src="js/web3.min.js"></script>
     <script src="js/truffle-contract.js"></script>
     <script src="js/date.format.js"></script>
+    <script src="js/common.js"></script>
     <script src="js/quickupload.js"></script>
     </body>
   </html>
