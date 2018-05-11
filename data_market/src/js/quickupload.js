@@ -46,12 +46,13 @@ App = {
 
   setAssociation: (event) => {
     Common.contracts.DatabaseAssociation.deployed().then(function(instance) {
-      databaseAssociationInstance = instance;
-      $('#associationAddress').text(databaseAssociationInstance.address);
+      Common.databaseAssociationInstance = instance;
+      $('#associationAddress').text(Common.databaseAssociationInstance.address);
       return instance.databaseFactory();
     }).then(function(factory) {
       Common.contracts.SimpleDatabaseFactory.at(factory).then(function(instance) {
-        databaseFactoryInstance = instance;
+        Common.databaseFactoryInstance = instance;
+        App.populateDatabaseList()
       })
     });
   },
@@ -65,7 +66,7 @@ App = {
     }
 
     el('#shardProposal_database').innerHTML = ''
-    databaseFactoryInstance.numberOfDatabases().then(function(numDatabases) {
+    Common.databaseFactoryInstance.numberOfDatabases().then(function(numDatabases) {
 
       var allPromises = [];
       var i;
@@ -75,7 +76,7 @@ App = {
         el('#addShardProposal').disabled = true;
       } else {
         for (i = 0; i < numDatabases; i++) {
-          allPromises.push(databaseFactoryInstance.getDatabase(i))
+          allPromises.push(Common.databaseFactoryInstance.getDatabase(i))
         }
         Promise.all(allPromises).then((allDbs) => allDbs.map(addToProposalsView))
         el('#shardProposal_database').disabled = false;
