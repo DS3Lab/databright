@@ -1,73 +1,4 @@
 App = {
-  web3Provider: null,
-  contracts: {},
-  databaseAssociationInstance: null,
-  databaseFactoryInstance: null,
-  dbAddressToNameDict: null,
-  ipfsNodeAddress: 'localhost',
-  ipfsNodePort: '5001',
-  ipfsGatewayURL: 'http://localhost:8080/ipfs/',
-
-  init: function() {
-    ipfs = window.IpfsApi({host: App.ipfsNodeAddress, port: App.ipfsNodePort, protocol: 'http'})
-    return App.initWeb3();
-  },
-
-  initWeb3: function() {
-    // Initialize web3 and set the provider to the testRPC.
-    if (typeof web3 !== 'undefined') {
-      App.web3Provider = web3.currentProvider;
-      web3 = new Web3(web3.currentProvider);
-    } else {
-      // set the provider you want from Web3.providers
-      // App.web3Provider = new Web3.providers.HttpProvider('http://127.0.0.1:9545');
-      App.web3Provider = new Web3.providers.HttpProvider('http://127.0.0.1:8180'); // parity
-      web3 = new Web3(App.web3Provider);
-    }
-
-    return App.initContract();
-  },
-
-  initContract: function() {
-    
-    $.getJSON('DatabaseAssociation.json', function(data) {
-      var Artifact = data;
-      App.contracts.DatabaseAssociation = TruffleContract(Artifact);
-      App.contracts.DatabaseAssociation.setProvider(App.web3Provider);
-
-      $.getJSON('CuratorToken.json', function(data) {
-      // Get the necessary contract artifact file and instantiate it with truffle-contract.
-      var CuratorTokenArtifact = data;
-      App.contracts.CuratorToken = TruffleContract(CuratorTokenArtifact);
-
-      // Set the provider for our contract.
-      App.contracts.CuratorToken.setProvider(App.web3Provider);
-
-      });
-
-      $.getJSON('SimpleDatabaseFactory.json', function(data) {
-      // Get the necessary contract artifact file and instantiate it with truffle-contract.
-      var Artifact = data;
-      App.contracts.SimpleDatabaseFactory = TruffleContract(Artifact);
-
-      // Set the provider for our contract.
-      App.contracts.SimpleDatabaseFactory.setProvider(App.web3Provider);
-      });
-
-      $.getJSON('SimpleDatabase.json', function(data) {
-      // Get the necessary contract artifact file and instantiate it with truffle-contract.
-      var Artifact = data;
-      App.contracts.SimpleDatabase = TruffleContract(Artifact);
-
-      // Set the provider for our contract.
-      App.contracts.SimpleDatabase.setProvider(App.web3Provider);
-      });
-
-      App.setAssociation();
-    });
-    return App.bindEvents();
-  },
-
   bindEvents: function() {
 
     var el = function(id){ return document.querySelector(id); }; // Selector
@@ -159,7 +90,7 @@ App = {
       el("#proposalOverview").style.display = 'none';
     });
     $('#proposals').on('click', '#executeProposalBtn', function(){
-      databaseAssociationInstance.executeProposal(parseInt(this.getAttribute("data-id")), 0);
+      Common.databaseAssociationInstance.executeProposal(parseInt(this.getAttribute("data-id")), 0);
     });
 
     // Voting buttons
@@ -199,7 +130,7 @@ App = {
       function get_list_entry(prop) {
         if (!prop[4]) { // not yet executed && prop[3]*1000 >= Date.now()) { // prop.executed and deadline didn't pass yet
 
-          dbName = App.dbAddressToNameDict[prop[0]]
+          dbName = Common.dbAddressToNameDict[prop[0]]
           votingDeadline = new Date(prop[3] * 1000).format('d-m-Y H:i:s')
           var shardProposalText;
           var databaseProposalText;
@@ -239,11 +170,11 @@ App = {
     }
 
     // draw the proposals submitted
-    App.reloadDatabaseDict().then(() => databaseAssociationInstance.numProposals()).then((inputProposals) => {
+    Common.reloadDatabaseDict().then(() => Common.databaseAssociationInstance.numProposals()).then((inputProposals) => {
       el('#proposals').innerHTML = ''
 
       //for(proposalID = 0; proposalID <= inputProposals; proposalID++) {
-      //  databaseAssociationInstance.proposals(proposalID).then(return get_proposal_list_entry(proposalID))
+      //  Common.databaseAssociationInstance.proposals(proposalID).then(return get_proposal_list_entry(proposalID))
       //}
       
       
@@ -251,7 +182,7 @@ App = {
       var allPromises = [];
       var proposalID;
       for (proposalID = 0; proposalID < inputProposals; proposalID++) {
-        allPromises.push(databaseAssociationInstance.proposals(proposalID).then(get_proposal_list_entry(proposalID)))
+        allPromises.push(Common.databaseAssociationInstance.proposals(proposalID).then(get_proposal_list_entry(proposalID)))
       }
 
       Promise.all(allPromises).then(proposalsToShow => {
@@ -295,7 +226,7 @@ App = {
           requestedTokens = parseInt($('#shardProposal_requestedtokens').val());
           curator = $('#shardProposal_curator').val();
 
-          databaseAssociationInstance.proposeAddShard(databaseAddress, description, hash, requestedTokens, curator);
+          Common.databaseAssociationInstance.proposeAddShard(databaseAddress, description, hash, requestedTokens, curator);
         }
       )
     )
@@ -304,20 +235,20 @@ App = {
   addDatabaseProposal: function(event) {
     name = $('#databaseProposal_name').val();
     description = $('#databaseProposal_description').val();
-    databaseAssociationInstance.proposeAddDatabase(description, name);
+    Common.databaseAssociationInstance.proposeAddDatabase(description, name);
   },
 
   setAssociation: (event) => {
-    App.contracts.DatabaseAssociation.deployed().then(function(instance) {
-      databaseAssociationInstance = instance;
-      $('#associationAddress').text(databaseAssociationInstance.address);
+    Common.contracts.DatabaseAssociation.deployed().then(function(instance) {
+      Common.databaseAssociationInstance = instance;
+      $('#associationAddress').text(Common.databaseAssociationInstance.address);
 
       App.getBalances();
 
       return instance.databaseFactory();
     }).then(function(factory) {
-      App.contracts.SimpleDatabaseFactory.at(factory).then(function(instance) {
-        databaseFactoryInstance = instance;
+      Common.contracts.SimpleDatabaseFactory.at(factory).then(function(instance) {
+        Common.databaseFactoryInstance = instance;
         App.loadProposals();
       })
     });
@@ -340,7 +271,7 @@ App = {
 
       var account = accounts[0];
 
-      App.contracts.TutorialToken.deployed().then(function(instance) {
+      Common.contracts.TutorialToken.deployed().then(function(instance) {
         tutorialTokenInstance = instance;
 
         return tutorialTokenInstance.transfer(toAddress, amount, {from: account});
@@ -365,8 +296,8 @@ App = {
 
       var account = accounts[0];
 
-      databaseAssociationInstance.sharesTokenAddress().then(function(result) {
-        App.contracts.CuratorToken.at(result).then(function(instance) {
+      Common.databaseAssociationInstance.sharesTokenAddress().then(function(result) {
+        Common.contracts.CuratorToken.at(result).then(function(instance) {
         curatorTokenInstance = instance;
 
         return curatorTokenInstance.balanceOf(account);
@@ -393,7 +324,7 @@ App = {
     }
 
     el('#shardProposal_database').innerHTML = ''
-    databaseFactoryInstance.numberOfDatabases().then(function(numDatabases) {
+    Common.databaseFactoryInstance.numberOfDatabases().then(function(numDatabases) {
 
       var allPromises = [];
       var i;
@@ -403,7 +334,7 @@ App = {
         el('#addShardProposal').disabled = true;
       } else {
         for (i = 0; i < numDatabases; i++) {
-          allPromises.push(databaseFactoryInstance.getDatabase(i))
+          allPromises.push(Common.databaseFactoryInstance.getDatabase(i))
         }
         Promise.all(allPromises).then((allDbs) => allDbs.map(addToProposalsView))
         el('#shardProposal_database').disabled = false;
@@ -413,30 +344,12 @@ App = {
   },
 
   voteOnProposal: function(proposalID, supportsProposal) {
-    databaseAssociationInstance.vote(proposalID, supportsProposal);
-  },
-
-  reloadDatabaseDict: function() {
-    App.dbAddressToNameDict = {}
-
-    function assignToDict(db) {
-      App.dbAddressToNameDict[db[0]] = db[1];
-    }
-
-    return databaseFactoryInstance.numberOfDatabases().then(function(numDatabases) {
-
-      var allPromises = [];
-      var i;
-      for (i = 0; i < numDatabases; i++) {
-        allPromises.push(databaseFactoryInstance.getDatabase(i))
-      }
-      return Promise.all(allPromises).then((allDbs) => allDbs.map(assignToDict))
-    });
+    Common.databaseAssociationInstance.vote(proposalID, supportsProposal);
   },
 
   loadDatabaseProposalVoting: function(proposalID) {
 
-    databaseAssociationInstance.proposals(proposalID).then(function(prop){
+    Common.databaseAssociationInstance.proposals(proposalID).then(function(prop){
       $('#databaseProposalVoting_id').text(proposalID);
       $('#databaseProposalVoting_dbtitle').text(prop[8]);
       $('#databaseProposalVoting_description').text(prop[2]);
@@ -447,12 +360,12 @@ App = {
 
   loadShardProposalVoting: function(proposalID) {
 
-    databaseAssociationInstance.proposals(proposalID).then(function(prop){
+    Common.databaseAssociationInstance.proposals(proposalID).then(function(prop){
       $('#shardProposalVoting_id').text(proposalID);
       $('#shardProposalVoting_description').text(prop[2]);
       $('#shardProposalVoting_requestedReward').text(prop[9]);
       $('#shardProposalVoting_deadline').text(new Date(prop[3] * 1000).format('d-m-Y h:i:s'));
-      dbNam = App.contracts.SimpleDatabase.at(prop[0]).then((db) => {return db.name();}).then((name) => {
+      dbNam = Common.contracts.SimpleDatabase.at(prop[0]).then((db) => {return db.name();}).then((name) => {
         $('#shardProposalVoting_dbtitle').text(name);
       });
 
@@ -460,8 +373,8 @@ App = {
       directoryRefpath = prop[8]
       ipfs.ls(directoryRefpath, (err, filesAdded) => {
         if (err) { throw err }
-        fileUrls = filesAdded.map((file) => { return App.ipfsGatewayURL + file.path;})
-        previewConfigs = filesAdded.map((file) => { return {caption: file.name, downloadUrl: App.ipfsGatewayURL + file.path, size: file.size, width: "120px"};})
+        fileUrls = filesAdded.map((file) => { return Common.ipfsGatewayURL + file.path;})
+        previewConfigs = filesAdded.map((file) => { return {caption: file.name, downloadUrl: Common.ipfsGatewayURL + file.path, size: file.size, width: "120px"};})
         $('#shardProposalVoting_files').fileinput({
           initialPreview: fileUrls,
           initialPreviewAsData: true,
@@ -477,5 +390,5 @@ App = {
 }
 
 $(function() {
-  $(window).on( "load",App.init());
+  $(window).on( "load",Common.init());
 });

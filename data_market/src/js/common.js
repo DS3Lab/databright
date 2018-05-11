@@ -75,12 +75,12 @@ Common = {
       Common.dbAddressToNameDict[db[0]] = db[1];
     }
 
-    return databaseFactoryInstance.numberOfDatabases().then(function(numDatabases) {
+    return Common.databaseFactoryInstance.numberOfDatabases().then(function(numDatabases) {
 
       var allPromises = [];
       var i;
       for (i = 0; i < numDatabases; i++) {
-        allPromises.push(databaseFactoryInstance.getDatabase(i))
+        allPromises.push(Common.databaseFactoryInstance.getDatabase(i))
       }
       return Promise.all(allPromises).then((allDbs) => allDbs.map(assignToDict))
     });
