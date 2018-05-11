@@ -20,13 +20,24 @@
       <h4>Quick Upload</h4>
 
       <div id="inputProposals">
-        <select class="form-control" id="shardProposal_database" />
+        <select class="form-control" id="shardProposal_database" disabled="true" />
         
-        <input type="text" id="shardProposal_description" maxLength="64" placeholder="Description (optional)" />
+        <input type="text" id="shardProposal_description" maxLength="64" placeholder="Description (optional)  " />
         <input id="shardProposal_files" name="shardProposal_files[]" type="file" class="file" multiple data-show-upload="false" data-show-caption="true" data-msg-placeholder="Select {files} for upload...">
       </div>
 
       <button id="addShardProposal">Upload data</button>
+      <hr />
+    </div>
+    <div id="shardProposalSucceeded", style="display:none;">
+      <h4>Quick Upload</h4>
+      Data has been uploaded.
+      Your Ethereum wallet mnemonic is:
+      Please write this down or print it.
+
+      The reward for your data contribution will be automatically calculated and then be credit to your Ethereum wallet.
+
+      <button id="uploadMore">Upload more</button>
       <hr />
     </div>
     <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->

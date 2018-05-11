@@ -9,6 +9,11 @@ App = {
     el('#addShardProposal').addEventListener('click', function(){
           App.addShardProposal();
         });
+
+    el("#uploadMore").addEventListener('click', () => {
+      el("#shardProposalCreation").style.display = 'block';
+      el("#shardProposalSucceeded").style.display = 'none';
+    });
   },
 
   addShardProposal: function(event) {
@@ -35,10 +40,18 @@ App = {
           databaseAddress = $('#shardProposal_database').val();
           description = $('#shardProposal_description').val();
           hash = directory.hash;
-          requestedTokens = parseInt($('#shardProposal_requestedtokens').val());
-          curator = $('#shardProposal_curator').val();
+          requestedTokens = filesToUpload.length // TODO: Currently we request tokens equal to the number of files. The reward should be dependent on the data quality.
+          curator = '0xfE5eb2786D97298749b9f8ca23dB3134b64daF41'
 
-          databaseAssociationInstance.proposeAddShard(databaseAddress, description, hash, requestedTokens, curator);
+          Common.databaseAssociationInstance.proposeAddShard(databaseAddress, description, hash, requestedTokens, curator).then((err, res) => {
+            if (err) {
+              console.log(err)
+              throw err;
+            }
+
+            el("#shardProposalCreation").style.display = 'none';
+            el("#shardProposalSucceeded").style.display = 'block';
+          }); // TODO: Go to succeded-page after transaction has been sent
         }
       )
     )
