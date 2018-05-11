@@ -171,13 +171,7 @@ App = {
 
     // draw the proposals submitted
     Common.reloadDatabaseDict().then(() => Common.databaseAssociationInstance.numProposals()).then((inputProposals) => {
-      el('#proposals').innerHTML = ''
-
-      //for(proposalID = 0; proposalID <= inputProposals; proposalID++) {
-      //  Common.databaseAssociationInstance.proposals(proposalID).then(return get_proposal_list_entry(proposalID))
-      //}
-      
-      
+      el('#proposals').innerHTML = '' 
 
       var allPromises = [];
       var proposalID;
