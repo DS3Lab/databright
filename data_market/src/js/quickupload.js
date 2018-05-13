@@ -41,7 +41,7 @@ App = {
           description = $('#shardProposal_description').val();
           hash = directory.hash;
           requestedTokens = filesToUpload.length // TODO: Currently we request tokens equal to the number of files. The reward should be dependent on the data quality.
-          curator = '0xfE5eb2786D97298749b9f8ca23dB3134b64daF41'
+          curator = $('#shardProposal_curator').val() != '' ? $('#shardProposal_curator').val() : $('#accountAddress').val()
 
           Common.databaseAssociationInstance.proposeAddShard(databaseAddress, description, hash, requestedTokens, curator).then((err, res) => {
             if (err) {
@@ -67,6 +67,14 @@ App = {
         Common.databaseFactoryInstance = instance;
         App.populateDatabaseList()
       })
+    });
+
+    web3.eth.getAccounts(function(error, accounts) {
+      if (error) {
+        console.log(error);
+      }
+
+      $('#accountAddress').text(accounts[0])
     });
   },
 

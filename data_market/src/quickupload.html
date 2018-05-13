@@ -14,6 +14,10 @@
           <label>Association</label>
           <p><span id="associationAddress">0x</span></p>
         </div>
+        <div class="column">
+          <label>Your Address</label>
+          <p><span id="accountAddress">0x</span></p>
+        </div>
       </div>
 
     <div id="shardProposalCreation", style="display:block;">
@@ -22,7 +26,8 @@
       <div id="inputProposals">
         <select class="form-control" id="shardProposal_database" disabled="true" />
         
-        <input type="text" id="shardProposal_description" maxLength="64" placeholder="Description (optional)  " />
+        <input type="text" id="shardProposal_description" maxLength="64" placeholder="Description (optional)" />
+        <input type="text" id="shardProposal_curator" maxLength="64" placeholder="Curator (optional)" />
         <input id="shardProposal_files" name="shardProposal_files[]" type="file" class="file" multiple data-show-upload="false" data-show-caption="true" data-msg-placeholder="Select {files} for upload...">
       </div>
 
