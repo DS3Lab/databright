@@ -11,12 +11,17 @@ App = {
         });
 
     el("#uploadMore").addEventListener('click', () => {
+      $('#shardProposal_description').text('');
+      $('#shardProposal_curator').text('');
+      $('#shardProposal_files').fileinput('clear')
       el("#shardProposalCreation").style.display = 'block';
       el("#shardProposalSucceeded").style.display = 'none';
     });
   },
 
   addShardProposal: function(event) {
+
+    var el = function(id){ return document.querySelector(id); }; // Selector
 
     function readFileContents (file) {
       return new Promise((resolve) => {
@@ -43,15 +48,11 @@ App = {
           requestedTokens = filesToUpload.length // TODO: Currently we request tokens equal to the number of files. The reward should be dependent on the data quality.
           curator = $('#shardProposal_curator').val() != '' ? $('#shardProposal_curator').val() : $('#accountAddress').val()
 
-          Common.databaseAssociationInstance.proposeAddShard(databaseAddress, description, hash, requestedTokens, curator).then((err, res) => {
-            if (err) {
-              console.log(err)
-              throw err;
-            }
-
+          Common.databaseAssociationInstance.proposeAddShard.sendTransaction(databaseAddress, description, hash, requestedTokens, curator)
+          .then((transactionHash) => {
             el("#shardProposalCreation").style.display = 'none';
             el("#shardProposalSucceeded").style.display = 'block';
-          }); // TODO: Go to succeded-page after transaction has been sent
+          })
         }
       )
     )
