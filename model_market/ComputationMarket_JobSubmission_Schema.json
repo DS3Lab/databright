@@ -17,6 +17,17 @@
             "default": ""
           }
         },
+        "shard_owners": {
+          "$id": "/properties/data/properties/shard_owners",
+          "type": "array",
+          "items": {
+            "$id": "/properties/data/properties/shard_owners/items",
+            "type": "string",
+            "title": "dataset shard owners",
+            "description": "The ethereum account address of the shard owners. Order matters, elements in the array correspond to ipfs_hashes above.",
+            "default": ""
+          }
+        },
         "predictor_filename_regex": {
           "$id": "/properties/data/properties/predictor_filename_regex",
           "type": "string",
