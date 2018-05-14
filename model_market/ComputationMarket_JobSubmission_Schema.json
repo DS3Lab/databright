@@ -58,11 +58,12 @@
           "$id": "/properties/computation/properties/task",
           "type": "string",
           "title": "Task type",
-          "description": "Indicates whether this is an inference or training task",
+          "description": "Indicates whether this is an inference, training or tryrun task",
           "default": "",
           "enum": [
             "inference",
-            "training"
+            "training",
+            "tryrun"
           ]
         },
         "train_num_epochs": {
