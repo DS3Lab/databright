@@ -1,0 +1,56 @@
+{
+  "$id": "http://example.com/example.json",
+  "type": "object",
+  "definitions": {},
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "properties": {
+    "job_id": {
+      "$id": "/properties/job_id",
+      "type": "string",
+      "title": "Unique job id",
+      "description": "Job ID provided after job submission to uniquely identify a job. Can be a number, Guid or any other unique string.",
+      "default": "",
+      "examples": ""
+    },
+    "result": {
+      "$id": "/properties/result",
+      "type": "array",
+      "items": {
+        "$id": "/properties/result/items",
+        "type": "string",
+        "title": "Result type",
+        "description": "Indicates whether the job has been executed successfully, partially successfully or failed with an error.",
+        "default": "",
+        "examples": [
+          "success",
+          "partial_success",
+          "error"
+        ]
+      }
+    },
+    "model_ipfs_hash": {
+      "$id": "/properties/model_ipfs_hash",
+      "type": "string",
+      "title": "IPFS location of trained model",
+      "description": "Location of the serialized PyTorch model that has been trained. This should contain the graph and the parameters (see the second approach in https://bit.ly/2I04yFj). This only concerns training tasks.",
+      "default": "",
+      "examples": ""
+    },
+    "runtime_output": {
+      "$id": "/properties/runtime_output",
+      "type": "string",
+      "title": "Runtime output messages",
+      "description": "Optional output of the runtime environment, e.g. printed messages, error messages, etc.",
+      "default": "",
+      "examples": ""
+    },
+    "predictions_ipfs_hash": {
+      "$id": "/properties/predictions_ipfs_hash",
+      "type": "string",
+      "title": "IPFS location of the predictions",
+      "description": "Location of the predicted values. Concrete format TBD (maybe CSV). This only concerns inference tasks.",
+      "default": "",
+      "examples": ""
+    }
+  }
+}

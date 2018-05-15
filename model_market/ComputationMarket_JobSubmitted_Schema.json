@@ -1,0 +1,16 @@
+{
+  "$id": "http://example.com/example.json",
+  "type": "object",
+  "definitions": {},
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "properties": {
+    "job_id": {
+      "$id": "/properties/job_id",
+      "type": "string",
+      "title": "An ID that identifies each job uniquely",
+      "description": "Can be a number, Guid or any other unique string.",
+      "default": "",
+      "examples": ""
+    }
+  }
+}
