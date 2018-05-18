@@ -1,0 +1,10 @@
+[package]
+name = "databright_modelmarket"
+version = "0.1.0"
+authors = ["Florian Chlan <florian@chlan.net>"]
+
+[dependencies]
+web3 = "0.3.0"
+tokio-core = "0.1.16"
+rust-ini = "0.11"
+csv = "1"
