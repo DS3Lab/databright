@@ -71,12 +71,14 @@ fn main() {
 
     // Retrieve logs since last processed block
 
-    // TODO To filter for specific events, like the Voted-event of DatabaseAssociation:
-    // let desired_topics = Some(vec![*topics.get(&("DatabaseAssociation", "Voted".into())).unwrap()]);
+    // TODO To filter for specific events:
+    //let desired_topics = Some(
+    //    vec![*topics.get(&("DatabaseAssociation", "Voted".into())).unwrap(),
+    //         *topics.get(&("DatabaseAssociation", "ProposalAdded".into())).unwrap()
+    //    ]);
     let desired_topics = None;
 
-    if replay_past_events {
-        let from_block = if last_processed_block_id.is_empty() {
+    let from_block = if last_processed_block_id.is_empty() {
                 BlockNumber::Earliest
             } else {
                 match last_processed_block_id.parse::<u64>() {
@@ -85,7 +87,7 @@ fn main() {
                 }
             };
 
-        let filter = FilterBuilder::default()
+    let filter = FilterBuilder::default()
             .address(vec![database_association_contract.address()])
             .from_block(from_block)
             .to_block(BlockNumber::Latest)
@@ -96,6 +98,9 @@ fn main() {
                 None,
             )
             .build();
+
+    if replay_past_events {
+        
 
         let event_future = web3.eth_filter()
             .create_logs_filter(filter)
