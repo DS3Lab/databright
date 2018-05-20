@@ -14,7 +14,7 @@ def stringify_event(obj):
 def keccakify(event_str):
   keccak_hash = keccak.new(digest_bits=256)
   keccak_hash.update(event_str.encode('ascii'))
-  return keccak_hash.hexdigest()
+  return '0x' + keccak_hash.hexdigest()
 
 for filename in os.listdir(json_dir):
   if filename.endswith(".json"):
