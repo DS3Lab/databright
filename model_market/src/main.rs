@@ -123,8 +123,9 @@ fn main() {
             .and_then(|filter| {
                 let res = filter.logs().and_then(|logs| {
                     for log in logs {
-                        // TODO Handle filtered log here
+                        
                         debug!("Log: {:?}", log);
+                        handle_log(log, true);
                     }
                     Ok(())
                 });
@@ -135,4 +136,8 @@ fn main() {
         event_loop.run(event_future);
         debug!("Finished replay of events");
     }
+}
+
+fn handle_log(log: web3::types::Log, replayed_event: bool) {
+    // TODO Handle filtered log here
 }
