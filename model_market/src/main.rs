@@ -77,8 +77,6 @@ fn main() {
         include_bytes!("../../data_market/build/DatabaseAssociation.abi"),
     ).unwrap();
 
-    // Retrieve logs since last processed block
-
     // TODO To filter for specific events:
     //let desired_topics: std::option::Option<std::vec::Vec<web3::types::H256>> = Some(
     //    vec![*topics.get(&("DatabaseAssociation", "Voted".into())).unwrap(),
@@ -95,6 +93,7 @@ fn main() {
         info!("Listening for {} events", num_events);
     }
 
+    // Retrieve logs since last processed block
     if replay_past_events {
         info!("replay_past_events is true. Will replay events from the past..");
         let from_block = if last_processed_block_id.is_empty() {
@@ -111,7 +110,7 @@ fn main() {
             .from_block(from_block)
             .to_block(BlockNumber::Latest)
             .topics(
-                desired_topics,
+                desired_topics.clone(),
                 None,
                 None,
                 None,
@@ -123,8 +122,7 @@ fn main() {
             .and_then(|filter| {
                 let res = filter.logs().and_then(|logs| {
                     for log in logs {
-                        
-                        debug!("Log: {:?}", log);
+                        debug!("Replayed log: {:?}", log);
                         handle_log(log, true);
                     }
                     Ok(())
@@ -136,6 +134,31 @@ fn main() {
         event_loop.run(event_future);
         debug!("Finished replay of events");
     }
+
+    // Subscribe to current topics and handle them as they happen
+    info!("Subscribing to current events..");
+    let filter = FilterBuilder::default()
+        .address(vec![database_association_contract.address()])
+        .topics(
+            desired_topics,
+            None,
+            None,
+            None,
+        )
+        .build();
+
+    let subscription_future = web3.eth_subscribe()
+        .subscribe_logs(filter)
+        .then(|sub| {
+            sub.unwrap().for_each(|log| {
+                debug!("Subscribed log: {:?}", log);
+                handle_log(log, false);
+                Ok(())
+            })
+        })
+        .map_err(|_| ());
+
+    event_loop.run(subscription_future);
 }
 
 fn handle_log(log: web3::types::Log, replayed_event: bool) {
