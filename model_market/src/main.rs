@@ -78,7 +78,9 @@ fn main() {
     //    ]);
     let desired_topics = None;
 
-    let from_block = if last_processed_block_id.is_empty() {
+    if replay_past_events {
+
+        let from_block = if last_processed_block_id.is_empty() {
                 BlockNumber::Earliest
             } else {
                 match last_processed_block_id.parse::<u64>() {
@@ -87,7 +89,7 @@ fn main() {
                 }
             };
 
-    let filter = FilterBuilder::default()
+        let filter = FilterBuilder::default()
             .address(vec![database_association_contract.address()])
             .from_block(from_block)
             .to_block(BlockNumber::Latest)
@@ -99,19 +101,16 @@ fn main() {
             )
             .build();
 
-    if replay_past_events {
-        
-
         let event_future = web3.eth_filter()
             .create_logs_filter(filter)
-            .then(|filter| {
-                filter
-                    .unwrap()
-                    .stream(time::Duration::from_secs(0))
-                    .for_each(|log| {
+            .and_then(|filter| {
+                let res = filter.logs().and_then(|logs| {
+                    for log in logs {
                         // TODO Handle filtered log here
-                        Ok(())
-                    })
+                    }
+                    Ok(())
+                });
+                res
             })
             .map_err(|_| ());
 
