@@ -1,4 +1,6 @@
 */node_modules/*
+.vscode
+model_market/target/*
 data_market/build/*
 data_market/pnet/
 data_market/package-lock.json
