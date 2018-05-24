@@ -4,13 +4,14 @@ extern crate tokio_core;
 extern crate web3;
 #[macro_use] extern crate log;
 extern crate env_logger;
+extern crate ipfsapi;
 
 use ini::Ini;
 use std::collections::HashMap;
 use web3::contract::Contract;
 use web3::types::{Address, FilterBuilder, BlockNumber, H256};
 use web3::futures::{Future, Stream};
-
+use ipfsapi::IpfsApi;
 fn main() {
 
     env_logger::init();
@@ -30,11 +31,22 @@ fn main() {
         let replay_string = web3_section.get("replay_past_events").unwrap();
         match replay_string.parse::<bool>() {
             Ok(b) => b,
-            Err(_) => {println!("Couldn't parse replay_past_events from configuration. Replaying events from the past.."); true },
+            Err(_) => {println!("Couldn't parse replay_past_events from configuration. Skipping events from the past.."); false },
         }
     };
-
+    let subscribe_future_events = {
+        let subscribe_string = web3_section.get("subscribe_future_events").unwrap();
+        match subscribe_string.parse::<bool>() {
+            Ok(b) => b,
+            Err(_) => {println!("Couldn't parse subscribe_future_events from configuration. Not subscribing to future events.."); false },
+        }
+    };
     let last_processed_block_id = web3_section.get("last_processed_block_id").unwrap();
+
+    let ipfs_section = conf.section(Some("Ipfs".to_owned())).unwrap();
+    let ipfs_node_ip = ipfs_section.get("node_ip").unwrap();
+    let ipfs_node_port = ipfs_section.get("node_port").unwrap();
+    let ipfs_api = IpfsApi::new(ipfs_node_ip, ipfs_node_port.parse::<u16>().unwrap());
 
     // Populate topic hashmap
     info!("Loading topic hashes from ../data_marketr/build/*.topic files..");
@@ -135,30 +147,32 @@ fn main() {
         debug!("Finished replay of events");
     }
 
-    // Subscribe to current topics and handle them as they happen
-    info!("Subscribing to current events..");
-    let filter = FilterBuilder::default()
-        .address(vec![database_association_contract.address()])
-        .topics(
-            desired_topics,
-            None,
-            None,
-            None,
-        )
-        .build();
+    if subscribe_future_events {
+        // Subscribe to current topics and handle them as they happen
+        info!("Subscribing to current events..");
+        let filter = FilterBuilder::default()
+            .address(vec![database_association_contract.address()])
+            .topics(
+                desired_topics,
+                None,
+                None,
+                None,
+            )
+            .build();
 
-    let subscription_future = web3.eth_subscribe()
-        .subscribe_logs(filter)
-        .then(|sub| {
-            sub.unwrap().for_each(|log| {
-                debug!("Subscribed log: {:?}", log);
-                handle_log(log, false);
-                Ok(())
+        let subscription_future = web3.eth_subscribe()
+            .subscribe_logs(filter)
+            .then(|sub| {
+                sub.unwrap().for_each(|log| {
+                    debug!("Subscribed log: {:?}", log);
+                    handle_log(log, false);
+                    Ok(())
+                })
             })
-        })
-        .map_err(|_| ());
+            .map_err(|_| ());
 
-    event_loop.run(subscription_future);
+        event_loop.run(subscription_future);
+    }
 }
 
 fn handle_log(log: web3::types::Log, replayed_event: bool) {
