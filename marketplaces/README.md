@@ -2,14 +2,14 @@
 
 ## Prerequisits
 - A locally running ipfs daemon with the ipfs API running on `localhost:5001` and ipfs gateway at `http://localhost:8080/`
--- This may be changed in `data_market/src/js/common.js`.
+-- This may be changed in `marketplaces/src/js/common.js`.
 - A wallet application or wallet extension for your webbrowser (tested with Chrome and MetaMask)
 
 ## How to run
 
-1. In `data_market` directory, run `truffle compile`
-2. In `data_market/scripts` directory, run `python3 ./extract_abi.py`
-3. In `data_market` directory, run `npm run dev`
+1. In `marketplaces` directory, run `truffle compile`
+2. In `marketplaces/scripts` directory, run `python3 ./extract_abi.py`
+3. In `marketplaces` directory, run `npm run dev`
 4. Open `localhost:3000` in your webrowser
 
 ## Current deployment on Rinkeby Testnet:
