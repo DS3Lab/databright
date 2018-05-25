@@ -1,6 +1,6 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.21;    
 
-import "zeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./SimpleDatabase.sol";
 
 /**
@@ -25,7 +25,7 @@ contract SimpleDatabaseFactory is Ownable {
         numberOfDatabases += 1;
         address simpleDatabaseAddr = new SimpleDatabase(_name);
         uint id = databases.push(Database(simpleDatabaseAddr, _name)) - 1; // returns index of db
-        NewSimpleDatabase(simpleDatabaseAddr, _name, id);
+        emit NewSimpleDatabase(simpleDatabaseAddr, _name, id);
         SimpleDatabase db = SimpleDatabase(simpleDatabaseAddr);
         db.transferOwnership(msg.sender); // transfer ownership to the owner of factory
         return true;

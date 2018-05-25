@@ -1,6 +1,6 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.21;
 
-import "zeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./SimpleDatabaseFactory.sol";
 import "./CuratorToken.sol";
 
@@ -73,7 +73,7 @@ contract DatabaseAssociation is Ownable {
         databaseFactory = new SimpleDatabaseFactory(); //create new factory
         initialCurator = owner;
         sharesTokenAddress.mint(initialCurator, minimumSharesToPassAVote);
-        NewFactory(databaseFactory); //throw event!
+        emit NewFactory(databaseFactory); //throw event!
     }
 
     /**
@@ -92,7 +92,7 @@ contract DatabaseAssociation is Ownable {
         if (minimumSharesToPassAVote == 0 ) minimumSharesToPassAVote = 1;
         minimumQuorum = minimumSharesToPassAVote;
         debatingPeriodInMinutes = minutesForDebate;
-        ChangeOfRules(minimumQuorum, debatingPeriodInMinutes, sharesTokenAddress);
+        emit ChangeOfRules(minimumQuorum, debatingPeriodInMinutes, sharesTokenAddress);
     }
     
     /**
@@ -132,7 +132,7 @@ contract DatabaseAssociation is Ownable {
         p.requestedReward = requestedReward;
         p.curator = curator; //argument for curator but we can check for address(0) !
         p.state = state;
-        ProposalAdded(proposalID, beneficiary, weiAmount, jobDescription, argument, curator, state);
+        emit ProposalAdded(proposalID, beneficiary, weiAmount, jobDescription, argument, curator, state);
         numProposals = proposalID+1;
 
         return proposalID;
@@ -209,7 +209,7 @@ contract DatabaseAssociation is Ownable {
         p.votes[voteID] = Vote({inSupport: supportsProposal, voter: msg.sender});
         p.voted[msg.sender] = true;
         p.numberOfVotes = voteID +1;
-        Voted(proposalNumber,  supportsProposal, msg.sender);
+        emit Voted(proposalNumber,  supportsProposal, msg.sender);
         return voteID;
     }
 
@@ -273,7 +273,7 @@ contract DatabaseAssociation is Ownable {
         p.executed = true;
 
         // Fire Events
-        ProposalTallied(proposalNumber, yea - nay, quorum, p.proposalPassed);
+        emit ProposalTallied(proposalNumber, yea - nay, quorum, p.proposalPassed);
     }
 }
 

@@ -1,6 +1,6 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.21;
 
-import "zeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 /**
 * contract implements a simple DB table that allows to create and store shards
@@ -40,7 +40,7 @@ contract SimpleDatabase is Ownable {
     function addShard(address _curator, string _ipfsHash) public onlyOwner returns (bool) {
         numberOfShards += 1; // increment total number of shards
         uint id = shards.push(Shard(_curator, _ipfsHash)) - 1; // returns index of added shard
-        NewShard(address(this), name, id, _curator, _ipfsHash); // trigger event
+        emit NewShard(address(this), name, id, _curator, _ipfsHash); // trigger event
         return true;
     }
 
