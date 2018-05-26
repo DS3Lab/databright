@@ -13,4 +13,4 @@
 4. Open `localhost:3000` in your webrowser
 
 ## Current deployment on Rinkeby Testnet:
-Contract address: `0xAe2DE4e92904c93d26F8ED4b68d9525c00815F83`
+Contract address: `0x684ea3a82c308fbef0a73532eecefee33cc34843`

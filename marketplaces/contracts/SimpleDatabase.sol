@@ -7,10 +7,23 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 */
 contract SimpleDatabase is Ownable {
     
+    modifier costs(uint _amount) {
+        require(msg.value >= _amount);
+        _;
+        if (msg.value > _amount)
+            msg.sender.transfer(msg.value - _amount);
+    }
+
+    /**
+      * Current price of a single shard in wei.
+      * TODO: Make shard price dependent on total dataset value (and tokens requested for it)
+      */
+    uint shardPrice = 5000000000000000;
     /** 
       * Event returning contract address and metadata
       */
     event NewShard(address databaseAddr, string name, uint shardId, address curator, string ipfsHash);
+    event BoughtShard(address buyer, string ipfsHash);
 
     string public name;
     /**
@@ -53,6 +66,10 @@ contract SimpleDatabase is Ownable {
 
     function getNumberOfShards() public view returns (uint) {
       return numberOfShards;
+    }
+
+    function buyShard(uint _i) public payable costs(shardPrice) returns (string) {
+      emit BoughtShard(msg.sender, shards[_i].ipfsHash);
     }
 }
 
