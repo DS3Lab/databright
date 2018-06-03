@@ -3,6 +3,7 @@ pragma solidity ^0.4.21;
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./SimpleDatabaseFactory.sol";
 import "./CuratorToken.sol";
+import "./ModelMarket.sol";
 
 contract Database {
     function addShard(address _curator, string _ipfsHash) public returns (bool);
@@ -26,6 +27,8 @@ contract DatabaseAssociation is Ownable {
     address initialCurator;
     bool isFirstShard = false;
     SimpleDatabaseFactory public databaseFactory;
+    ModelMarket modelmarket;
+    bool modelmarketAssociated = false;
 
     event ProposalAdded(uint proposalID, address recipient, uint amount, string description, string argument, address curator, uint state);
     event Voted(uint proposalID, bool position, address voter);
@@ -274,6 +277,15 @@ contract DatabaseAssociation is Ownable {
 
         // Fire Events
         emit ProposalTallied(proposalNumber, yea - nay, quorum, p.proposalPassed);
+    }
+
+    function deassociateModelMarket() onlyOwner public {
+        modelmarketAssociated = false;
+    }
+
+    function associateModelMarket(address modelmarketAddress) onlyOwner public {
+        modelmarket = ModelMarket(modelmarketAddress);
+        modelmarketAssociated = true;
     }
 }
 

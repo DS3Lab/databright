@@ -38,12 +38,12 @@ contract ModelMarket is RBACWithAdmin {
         addRole(modelChecker, ROLE_MODELCHECKER);
     }
 
-    function changeDatabaseAssociation(address newDBA) onlyAdmin {
-        underlying = DatabaseAssociation(newDBA);
+    function changeDatabaseAssociation(address newDBA) onlyAdmin public {
+        underlying = DatabaseAssociation(newDBA);        
         emit DBAChanged(newDBA);
     }
 
-    function checkModel(string id, uint idx, bool isValid) onlyAdminOrChecker {
+    function checkModel(string id, uint idx, bool isValid) onlyAdminOrChecker public {
         if (isValid) {
             activeModels.push(submittedModels[idx]);
         }
