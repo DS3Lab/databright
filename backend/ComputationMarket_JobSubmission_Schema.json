@@ -46,7 +46,7 @@
           "$id": "/properties/model/properties/ipfs_hash",
           "type": "string",
           "title": "IPFS location of serialized model",
-          "description": "Location of the serialized PyTorch model to be used for training or inference. This should contain the graph and the parameters. (see the second approach in https://bit.ly/2I04yFj)",
+          "description": "Location of the serialized TensorFlow model to be used for training or inference. This should contain the graph and the parameters.",
           "default": ""
         }
       }

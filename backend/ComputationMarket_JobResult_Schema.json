@@ -32,7 +32,7 @@
       "$id": "/properties/model_ipfs_hash",
       "type": "string",
       "title": "IPFS location of trained model",
-      "description": "Location of the serialized PyTorch model that has been trained. This should contain the graph and the parameters (see the second approach in https://bit.ly/2I04yFj). This only concerns training tasks.",
+      "description": "Location of the serialized TensorFlow model that has been trained. This should contain the graph and the parameters. This only concerns training tasks.",
       "default": "",
       "examples": ""
     },
