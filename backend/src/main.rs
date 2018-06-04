@@ -21,9 +21,9 @@ fn main() {
     let conf = Ini::load_from_file("config.ini").unwrap();
     let contracts_section = conf.section(Some("Contracts".to_owned())).unwrap();
     let contracts = contracts_section.get("contracts").unwrap();
-    let database_association_address: Address = contracts_section.get("DatabaseAssociation").unwrap().parse().unwrap();
+    let model_market_address: Address = contracts_section.get("ModelMarket").unwrap().parse().unwrap();
     debug!("Contracts to use: {}", contracts);
-    debug!("DatabaseAssociation to use: {}", database_association_address);
+    debug!("ModelMarket to use: {}", model_market_address);
 
     let web3_section = conf.section(Some("Web3".to_owned())).unwrap();
     let ws_url = web3_section.get("websocket_transport_url").unwrap();
@@ -49,10 +49,10 @@ fn main() {
     let ipfs_api = IpfsApi::new(ipfs_node_ip, ipfs_node_port.parse::<u16>().unwrap());
 
     // Populate topic hashmap
-    info!("Loading topic hashes from ../data_marketr/build/*.topic files..");
+    info!("Loading topic hashes from ../marketplaces/build/*.topic files..");
     let mut topics: HashMap<(&str, String), H256> = HashMap::new();
     for contract in contracts.split(",") {
-        let mut rdr = csv::Reader::from_path(format!("../data_market/build/{}.topic", contract)).unwrap();
+        let mut rdr = csv::Reader::from_path(format!("../marketplaces/build/{}.topic", contract)).unwrap();
         
         for rec in rdr.records() {
             let rr = rec.unwrap();
@@ -83,10 +83,10 @@ fn main() {
 	});
     event_loop.run(bal).unwrap();
 
-    let database_association_contract = Contract::from_json(
+    let model_market_contract = Contract::from_json(
         web3.eth(),
-        database_association_address,
-        include_bytes!("../../data_market/build/DatabaseAssociation.abi"),
+        model_market_address,
+        include_bytes!("../../marketplaces/build/ModelMarket.abi"),
     ).unwrap();
 
     // TODO To filter for specific events:
@@ -94,7 +94,8 @@ fn main() {
     //    vec![*topics.get(&("DatabaseAssociation", "Voted".into())).unwrap(),
     //         *topics.get(&("DatabaseAssociation", "ProposalAdded".into())).unwrap()
     //    ]);
-    let desired_topics: std::option::Option<std::vec::Vec<web3::types::H256>> = None;
+    let desired_topics: std::option::Option<std::vec::Vec<web3::types::H256>> = Some(
+        vec![*topics.get(&("ModelMarket", "ModelSubmitted".into())).unwrap()]);
     let num_events = match desired_topics {
         Some(ref vec) => vec.len(),
         None => 0
@@ -118,7 +119,8 @@ fn main() {
             };
         debug!("Replaying events from {:?} to latest block", from_block);
         let filter = FilterBuilder::default()
-            .address(vec![database_association_contract.address()])
+            .address(vec![model_market_contract
+    .address()])
             .from_block(from_block)
             .to_block(BlockNumber::Latest)
             .topics(
@@ -135,7 +137,7 @@ fn main() {
                 let res = filter.logs().and_then(|logs| {
                     for log in logs {
                         debug!("Replayed log: {:?}", log);
-                        handle_log(log, true);
+                        handle_log(log, true, &topics);
                     }
                     Ok(())
                 });
@@ -151,7 +153,8 @@ fn main() {
         // Subscribe to current topics and handle them as they happen
         info!("Subscribing to current events..");
         let filter = FilterBuilder::default()
-            .address(vec![database_association_contract.address()])
+            .address(vec![model_market_contract
+    .address()])
             .topics(
                 desired_topics,
                 None,
@@ -165,7 +168,7 @@ fn main() {
             .then(|sub| {
                 sub.unwrap().for_each(|log| {
                     debug!("Subscribed log: {:?}", log);
-                    handle_log(log, false);
+                    handle_log(log, false, &topics);
                     Ok(())
                 })
             })
@@ -175,6 +178,8 @@ fn main() {
     }
 }
 
-fn handle_log(log: web3::types::Log, replayed_event: bool) {
+fn handle_log(log: web3::types::Log, replayed_event: bool, topics: &HashMap<(&str, String), H256>) {
     // TODO Handle filtered log here
+    println!("{:?}", log);
+    
 }
