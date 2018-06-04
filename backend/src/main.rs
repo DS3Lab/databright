@@ -4,14 +4,14 @@ extern crate tokio_core;
 extern crate web3;
 #[macro_use] extern crate log;
 extern crate env_logger;
-extern crate ipfsapi;
+extern crate ipfs_api;
 
 use ini::Ini;
 use std::collections::HashMap;
 use web3::contract::Contract;
 use web3::types::{Address, FilterBuilder, BlockNumber, H256};
 use web3::futures::{Future, Stream};
-use ipfsapi::IpfsApi;
+use ipfs_api::IpfsClient;
 fn main() {
 
     env_logger::init();
@@ -46,7 +46,8 @@ fn main() {
     let ipfs_section = conf.section(Some("Ipfs".to_owned())).unwrap();
     let ipfs_node_ip = ipfs_section.get("node_ip").unwrap();
     let ipfs_node_port = ipfs_section.get("node_port").unwrap();
-    let ipfs_api = IpfsApi::new(ipfs_node_ip, ipfs_node_port.parse::<u16>().unwrap());
+    let mut ipfs_core = tokio_core::reactor::Core::new().unwrap();
+    let ipfs_client = IpfsClient::new(&ipfs_core.handle(), ipfs_node_ip, ipfs_node_port.parse::<u16>().unwrap());
 
     // Populate topic hashmap
     info!("Loading topic hashes from ../marketplaces/build/*.topic files..");
