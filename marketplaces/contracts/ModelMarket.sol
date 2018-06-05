@@ -7,14 +7,15 @@ contract ModelMarket is RBACWithAdmin {
 
     string constant ROLE_MODELCHECKER = "modelchecker";
 
-    Model[] activeModels;
-    Model[] submittedModels;
+    string[] activeModelHashes;
+    mapping(string => bool) public modelsChecked;
+    mapping(string => Model) public submittedModels;
     DatabaseAssociation underlying;
 
     struct Model {
         address owner;
-        string id;
         address databaseAddr;
+        string hashcode;
         string title;
         string descriptionIpfsHash;
         string modelIpfsHash;
@@ -29,8 +30,8 @@ contract ModelMarket is RBACWithAdmin {
         );
         _;
     }
-    event ModelSubmitted(string id, uint idx);
-    event ModelChecked(string id, uint idx, bool isValid);
+    event ModelSubmitted(string hashcode);
+    event ModelChecked(string hashcode, bool isValid);
     event DBAChanged(address newDBA);
 
     function ModelMarket(address databaseAssociation, address modelChecker) public {
@@ -43,10 +44,37 @@ contract ModelMarket is RBACWithAdmin {
         emit DBAChanged(newDBA);
     }
 
-    function checkModel(string id, uint idx, bool isValid) onlyAdminOrChecker public {
+    function proposeNewModel(
+        address databaseAddr, // SimpleDatabase address that this model uses
+        string title,
+        string descriptionIpfsHash, // A description text of the database
+        string modelIpfsHash, // A hash to the TensorFlow model checkpoint files. The folder should also include the graph metadata and a config.ini
+        string dataExtractorIpfsHash // A hash to the DataExtractor module that will be used to extract features and predictors from the dataset
+    ) public returns (uint id) {
+        
+        string storage hashcode = keccak256(msg.sender, databaseAddr, title);
+        require(submittedModels[hashcode] == 0, "Model with that hash has already been submitted.");
+        require(underlying.databaseFactory.addressToDatabases[databaseAddr] != 0, "Database does not exist in the underlying DatabaseAssociation");
+
+        
+        modelsChecked[hashcode] = 0;
+        Model storage m = submittedModels[hashcode];
+        m.owner = msg.sender;
+        m.databaseAddr = databaseAddr;
+        m.title = title;
+        m.descriptionIpfsHash = descriptionIpfsHash;
+        m.modelIpfsHash = modelIpfsHash;
+        m.dataExtractorIpfsHash = dataExtractorIpfsHash;
+        m.hashcode = hashcode;
+
+        emit ModelSubmitted(hashcode);
+    }
+    function checkModel(string hashcode, bool isValid) onlyAdminOrChecker public {
+        require(modelsChecked[hashcode] == false, "Model is already checked");
+        modelsChecked[hashcode] = true;
         if (isValid) {
-            activeModels.push(submittedModels[idx]);
+            activeModelHashes.push(hashcode);
         }
-        emit ModelChecked(id, idx, isValid);
+        emit ModelChecked(hashcode, isValid);
     }
 }

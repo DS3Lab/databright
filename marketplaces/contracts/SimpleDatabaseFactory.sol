@@ -15,7 +15,9 @@ contract SimpleDatabaseFactory is Ownable {
         string name;
     }
 
-    Database[] public databases;
+    mapping(address => Database) addressToDatabases;
+
+    address[] public databaseAddresses;
     uint public numberOfDatabases = 0;
     /** 
       * create new database and store it into databases
@@ -24,7 +26,8 @@ contract SimpleDatabaseFactory is Ownable {
     function createDatabase(string _name) public onlyOwner returns (bool) {
         numberOfDatabases += 1;
         address simpleDatabaseAddr = new SimpleDatabase(_name);
-        uint id = databases.push(Database(simpleDatabaseAddr, _name)) - 1; // returns index of db
+        uint id = databaseAddresses.push(simpleDatabaseAddr) - 1; // returns index of db
+        addressToDatabases[simpleDatabaseAddr] = Database(simpleDatabaseAddr, _name);
         emit NewSimpleDatabase(simpleDatabaseAddr, _name, id);
         SimpleDatabase db = SimpleDatabase(simpleDatabaseAddr);
         db.transferOwnership(msg.sender); // transfer ownership to the owner of factory
@@ -35,6 +38,7 @@ contract SimpleDatabaseFactory is Ownable {
       * Solidity unfortunately can't return dynamic sized arrays yet
       */
     function getDatabase(uint _i) public view returns (address, string) {
-        return (databases[_i].database, databases[_i].name);
+        address addr = databaseAddresses[_i];
+        return (addr, addressToDatabases[addr].name);
     } 
 }
