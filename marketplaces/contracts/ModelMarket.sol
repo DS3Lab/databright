@@ -7,15 +7,15 @@ contract ModelMarket is RBACWithAdmin {
 
     string constant ROLE_MODELCHECKER = "modelchecker";
 
-    string[] activeModelHashes;
-    mapping(string => bool) public modelsChecked;
-    mapping(string => Model) public submittedModels;
+    bytes32[] activeModelHashes;
+    mapping(bytes32 => bool) public modelsChecked;
+    mapping(bytes32 => Model) public submittedModels;
     DatabaseAssociation underlying;
 
     struct Model {
         address owner;
         address databaseAddr;
-        string hashcode;
+        bytes32 hashcode;
         string title;
         string descriptionIpfsHash;
         string modelIpfsHash;
@@ -30,8 +30,8 @@ contract ModelMarket is RBACWithAdmin {
         );
         _;
     }
-    event ModelSubmitted(string hashcode);
-    event ModelChecked(string hashcode, bool isValid);
+    event ModelSubmitted(bytes32 hashcode);
+    event ModelChecked(bytes32 hashcode, bool isValid);
     event DBAChanged(address newDBA);
 
     function ModelMarket(address databaseAssociation, address modelChecker) public {
@@ -50,14 +50,13 @@ contract ModelMarket is RBACWithAdmin {
         string descriptionIpfsHash, // A description text of the database
         string modelIpfsHash, // A hash to the TensorFlow model checkpoint files. The folder should also include the graph metadata and a config.ini
         string dataExtractorIpfsHash // A hash to the DataExtractor module that will be used to extract features and predictors from the dataset
-    ) public returns (uint id) {
+    ) public returns (bytes32 hashcode) {
         
-        string storage hashcode = keccak256(msg.sender, databaseAddr, title);
-        require(submittedModels[hashcode] == 0, "Model with that hash has already been submitted.");
-        require(underlying.databaseFactory.addressToDatabases[databaseAddr] != 0, "Database does not exist in the underlying DatabaseAssociation");
-
+        hashcode = keccak256(msg.sender, databaseAddr, title);
+        require(submittedModels[hashcode].databaseAddr == 0);
+        //TODO Check that the DB exists in the underlying DatabaseAssociation
         
-        modelsChecked[hashcode] = 0;
+        modelsChecked[hashcode] = false;
         Model storage m = submittedModels[hashcode];
         m.owner = msg.sender;
         m.databaseAddr = databaseAddr;
@@ -69,8 +68,8 @@ contract ModelMarket is RBACWithAdmin {
 
         emit ModelSubmitted(hashcode);
     }
-    function checkModel(string hashcode, bool isValid) onlyAdminOrChecker public {
-        require(modelsChecked[hashcode] == false, "Model is already checked");
+    function checkModel(bytes32 hashcode, bool isValid) onlyAdminOrChecker public {
+        require(modelsChecked[hashcode] == false);
         modelsChecked[hashcode] = true;
         if (isValid) {
             activeModelHashes.push(hashcode);

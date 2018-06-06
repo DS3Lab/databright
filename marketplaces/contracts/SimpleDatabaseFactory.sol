@@ -15,7 +15,7 @@ contract SimpleDatabaseFactory is Ownable {
         string name;
     }
 
-    mapping(address => Database) addressToDatabases;
+    mapping(address => Database) public addressToDatabases;
 
     address[] public databaseAddresses;
     uint public numberOfDatabases = 0;
