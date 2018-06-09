@@ -302,6 +302,16 @@ App = {
             $('#accountBalance').text(balance + " (" + share + "%)" ); //calculates shares
           });
           $('#accountAddress').text(account);
+          Common.databaseAssociationInstance.minimumProposeBalance().then(function(minPropBal) {
+            $("#goToShard").text("Add data (min " + minPropBal + ")")
+            $("#goToNewDatabase").text("New Database (min " + minPropBal + ")")
+            if (balance < minPropBal) {
+              $("#goToShard").prop('disabled', true);
+              $("#goToNewDatabase").prop('disabled', true);
+            }
+          });
+          
+
         }).catch(function(err) {
           console.log(err.message);
         });
