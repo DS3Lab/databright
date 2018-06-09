@@ -20,12 +20,13 @@ contract DatabaseAssociation is Ownable {
 
     uint public minimumQuorum;
     uint public debatingPeriodInMinutes;
+    uint public minimumProposeBalance;
     Proposal[] public proposals;
     uint public numProposals;
     uint public creationReward; // Temporary fixed reward for creating a new database, just so that voting on the first shard can happen
     CuratorToken public sharesTokenAddress;
     address initialCurator;
-    bool isFirstShard = false;
+    bool firstShardPending = true;
     SimpleDatabaseFactory public databaseFactory;
     ModelMarket modelmarket;
     bool modelmarketAssociated = false;
@@ -65,6 +66,10 @@ contract DatabaseAssociation is Ownable {
         _;
     }
 
+    modifier onlyProposers {
+        require(sharesTokenAddress.balanceOf(msg.sender) >= minimumProposeBalance);
+        _;
+    }
     /**
      * Constructor function
      *
@@ -72,7 +77,7 @@ contract DatabaseAssociation is Ownable {
      */
     function DatabaseAssociation(uint minimumSharesToPassAVote, uint minutesForDebate) payable public {
         CuratorToken sharesAddress = new CuratorToken();
-        changeVotingRules(sharesAddress, minimumSharesToPassAVote, minutesForDebate);
+        changeProposalRules(sharesAddress, minimumSharesToPassAVote, minutesForDebate, minimumSharesToPassAVote);
         databaseFactory = new SimpleDatabaseFactory(); //create new factory
         initialCurator = owner;
         sharesTokenAddress.mint(initialCurator, minimumSharesToPassAVote);
@@ -80,21 +85,24 @@ contract DatabaseAssociation is Ownable {
     }
 
     /**
-     * Change voting rules
+     * Change proposal rules
      *
      * Make so that proposals need tobe discussed for at least `minutesForDebate/60` hours
      * and all voters combined must own more than `minimumSharesToPassAVote` shares of token `sharesAddress` to be executed
-     *
+     * Also, a minimum token balance is needed to create a proposal
+     * 
      * @param sharesAddress token address. The token must be owned by the contract
      * @param minimumSharesToPassAVote proposal can vote only if the sum of shares held by all voters exceed this number
      * @param minutesForDebate the minimum amount of delay between when a proposal is made and when it can be executed
+     * @param minProposeBalance the minimum amount of CuratorTokens that a proposer needs to hold when creating a proposal
      */
-    function changeVotingRules(CuratorToken sharesAddress, uint minimumSharesToPassAVote, uint minutesForDebate) onlyOwner public{
+    function changeProposalRules(CuratorToken sharesAddress, uint minimumSharesToPassAVote, uint minutesForDebate, uint minProposeBalance) onlyOwner public{
         sharesTokenAddress = CuratorToken(sharesAddress);
         require(sharesTokenAddress.owner() == address(this));
         if (minimumSharesToPassAVote == 0 ) minimumSharesToPassAVote = 1;
         minimumQuorum = minimumSharesToPassAVote;
         debatingPeriodInMinutes = minutesForDebate;
+        minimumProposeBalance = minProposeBalance;
         emit ChangeOfRules(minimumQuorum, debatingPeriodInMinutes, sharesTokenAddress);
     }
     
@@ -117,7 +125,7 @@ contract DatabaseAssociation is Ownable {
         uint requestedReward,
         address curator, //annoying but we need it to store the data owner
         uint state // use to save state (create database, shards etc)
-    ) public
+    ) private
         //onlyShareholders
         returns (uint proposalID)
     {
@@ -147,7 +155,7 @@ contract DatabaseAssociation is Ownable {
     function proposeAddDatabase(
         string jobDescription,
         string name
-    ) public
+    ) public onlyProposers
         returns (uint proposalID)
     {
         return newProposal(databaseFactory, 0, jobDescription, "", name, 0,
@@ -163,7 +171,7 @@ contract DatabaseAssociation is Ownable {
         string ipfsHash,
         uint requestedReward,
         address curator
-    ) public 
+    ) public onlyProposers
         returns (uint proposalID)
     {
         return newProposal(database, 0, jobDescription, "", ipfsHash, requestedReward, curator, 2);
@@ -257,11 +265,11 @@ contract DatabaseAssociation is Ownable {
             } else if (p.state == 2) {
                 Database db = Database(p.recipient);
 
-                require(db.addShard(p.curator, p.argument)); // TODO: Are the transactions atomic?
+                require(db.addShard(p.curator, p.argument));
                 // if this is the first shard, burn the symbolic token of the owner
-                if(!isFirstShard) {
+                if(firstShardPending) {
                   sharesTokenAddress.burnFrom(initialCurator, minimumQuorum);
-                  isFirstShard = true;
+                  firstShardPending = false;
                 }
                 require(sharesTokenAddress.mint(p.curator, p.requestedReward));
             } else {
