@@ -1,4 +1,5 @@
 App = {
+  databases: null,
   bindEvents: function() {
 
     var el = function(id){ return document.querySelector(id); }; // Selector
@@ -60,6 +61,7 @@ App = {
       el("#databaseProposalCreation").style.display = 'none';
       el("#shardProposalVoting").style.display = 'none';
       el("#databaseProposalVoting").style.display = 'none';
+      el("#databaseOverview").style.display = 'none';
       el("#proposalOverview").style.display = 'block';
       App.loadProposals();
     });
@@ -126,7 +128,7 @@ App = {
     var proposalNames = [];
     // Callback function
     
-    function get_proposal_list_entry(id) {
+    function get_database_list_entry(id) {
       function get_list_entry(prop) {
         if (!prop[4]) { // not yet executed && prop[3]*1000 >= Date.now()) { // prop.executed and deadline didn't pass yet
 
@@ -176,7 +178,7 @@ App = {
       var allPromises = [];
       var proposalID;
       for (proposalID = 0; proposalID < inputProposals; proposalID++) {
-        allPromises.push(Common.databaseAssociationInstance.proposals(proposalID).then(get_proposal_list_entry(proposalID)))
+        allPromises.push(Common.databaseAssociationInstance.proposals(proposalID).then(get_database_list_entry(proposalID)))
       }
 
       Promise.all(allPromises).then(proposalsToShow => {
@@ -190,6 +192,36 @@ App = {
         el('#proposals').innerHTML = '<p>No proposals to display<p>'
         }
       })
+    })
+  },
+
+  loadDatabaseOverview: function() {
+
+    var el = function(id){ return document.querySelector(id); }; // Selector
+
+    var databaseNames = [];
+    // Callback function
+    
+    function get_database_list_entry(addr) {
+      dbName = Common.dbAddressToNameDict[addr]
+    
+      itemText = '<h5>' + dbName + '</h5><button id="viewDbDetails" data-id="' +
+      addr + '" class="float-right viewDbDetails">View Details</button></p>';
+
+      return itemText;
+    }
+
+    
+    // draw the databases
+    Common.reloadDatabaseDict().then(() => {
+      el('#databases').innerHTML = ''
+      for (var addr  in Common.dbAddressToNameDict) {
+        el('#databases').innerHTML += get_database_list_entry(addr)
+      }
+
+      if (el('#databases').innerHTML == '') {
+        el('#databases').innerHTML = '<p>No databases to display<p>'
+      }
     })
   },
 
@@ -243,7 +275,7 @@ App = {
     }).then(function(factory) {
       Common.contracts.SimpleDatabaseFactory.at(factory).then(function(instance) {
         Common.databaseFactoryInstance = instance;
-        App.loadProposals();
+        App.loadDatabaseOverview();
       })
     });
   },
