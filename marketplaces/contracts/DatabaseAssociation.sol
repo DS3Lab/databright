@@ -6,11 +6,15 @@ import "./CuratorToken.sol";
 import "./ModelMarket.sol";
 
 contract Database {
-    function addShard(address _curator, string _ipfsHash) public returns (bool);
+    function addShard(address _curator, string _ipfsHash, uint _timestamp, uint _tokenReward) public returns (bool);
+
+    function removeShard(uint shardIndex) public returns (bool);
     
     function getShard(uint _i) public view returns (address, string);
 
     function getNumberOfShards() public view returns (uint);
+
+    function getShardArrayLength() public constant returns(uint);
 }
 
 /**
@@ -31,7 +35,7 @@ contract DatabaseAssociation is Ownable {
     ModelMarket modelmarket;
     bool modelmarketAssociated = false;
 
-    event ProposalAdded(uint proposalID, address recipient, uint amount, string description, string argument, address curator, uint state);
+    event ProposalAdded(uint proposalID, address recipient, uint amount, string description, string argument, uint argument2, address curator, uint state);
     event Voted(uint proposalID, bool position, address voter);
     event ProposalTallied(uint proposalID, uint result, uint quorum, bool active);
     event ChangeOfRules(uint newMinimumQuorum, uint newDebatingPeriodInMinutes, address newSharesTokenAddress);
@@ -48,7 +52,7 @@ contract DatabaseAssociation is Ownable {
         uint numberOfVotes;
         bytes32 proposalHash;
         string argument; //either name or ipfsHash
-        uint requestedReward; //proposed shares for shard
+        uint argument2; //proposed shares for shard
         address curator; //address for shard adder
         uint state;
         Vote[] votes;
@@ -122,7 +126,7 @@ contract DatabaseAssociation is Ownable {
         string jobDescription,
         bytes transactionBytecode,
         string argument,
-        uint requestedReward,
+        uint argument2, // for add proposal, this is the requested reward, for remove proposals, this is the index of the shard to remove
         address curator, //annoying but we need it to store the data owner
         uint state // use to save state (create database, shards etc)
     ) private
@@ -140,10 +144,10 @@ contract DatabaseAssociation is Ownable {
         p.proposalPassed = false;
         p.numberOfVotes = 0;
         p.argument = argument; //argument for creating database (name) or ipfsHash
-        p.requestedReward = requestedReward;
+        p.argument2 = argument2; // for add proposal, this is the requested reward, for remove proposals, this is the index of the shard to remove
         p.curator = curator; //argument for curator but we can check for address(0) !
         p.state = state;
-        emit ProposalAdded(proposalID, beneficiary, weiAmount, jobDescription, argument, curator, state);
+        emit ProposalAdded(proposalID, beneficiary, weiAmount, jobDescription, argument, argument2, curator, state);
         numProposals = proposalID+1;
 
         return proposalID;
@@ -175,6 +179,19 @@ contract DatabaseAssociation is Ownable {
         returns (uint proposalID)
     {
         return newProposal(database, 0, jobDescription, "", ipfsHash, requestedReward, curator, 2);
+    }
+
+    /**
+      * Remove Shard
+      */
+    function proposeRemoveShard(
+        address database,
+        string jobDescription,
+        uint shardId
+    ) public onlyProposers
+        returns (uint proposalID)
+    {
+        return newProposal(database, 0, jobDescription, "", "", shardId, 0, 3);
     }
 
     /**
@@ -265,13 +282,16 @@ contract DatabaseAssociation is Ownable {
             } else if (p.state == 2) {
                 Database db = Database(p.recipient);
 
-                require(db.addShard(p.curator, p.argument));
+                require(db.addShard(p.curator, p.argument, p.votingDeadline, p.argument2));
                 // if this is the first shard, burn the symbolic token of the owner
                 if(firstShardPending) {
                   sharesTokenAddress.burnFrom(initialCurator, minimumQuorum);
                   firstShardPending = false;
                 }
-                require(sharesTokenAddress.mint(p.curator, p.requestedReward));
+                require(sharesTokenAddress.mint(p.curator, p.argument2));
+            } else if (p.state == 3) {
+                Database db2 = Database(p.recipient);
+                db2.removeShard(p.argument2);
             } else {
                 require(p.recipient.call.value(p.amount)(transactionBytecode));
             }

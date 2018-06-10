@@ -23,6 +23,7 @@ contract SimpleDatabase is Ownable {
       * Event returning contract address and metadata
       */
     event NewShard(address databaseAddr, string name, uint shardId, address curator, string ipfsHash);
+    event RemovedShard(address curator, string ipfsHash);
     event BoughtShard(address buyer, string ipfsHash);
 
     string public name;
@@ -32,6 +33,8 @@ contract SimpleDatabase is Ownable {
     struct Shard {
         address curator;
         string ipfsHash;
+        uint timestamp;
+        uint tokenReward;
     }
 
     /**
@@ -50,13 +53,20 @@ contract SimpleDatabase is Ownable {
       * adding hash to hashMap 
       * can only be called by owner
       */
-    function addShard(address _curator, string _ipfsHash) public onlyOwner returns (bool) {
+    function addShard(address _curator, string _ipfsHash, uint _timestamp, uint _tokenReward) public onlyOwner returns (bool) {
         numberOfShards += 1; // increment total number of shards
-        uint id = shards.push(Shard(_curator, _ipfsHash)) - 1; // returns index of added shard
+        uint id = shards.push(Shard(_curator, _ipfsHash, _timestamp, _tokenReward)) - 1; // returns index of added shard
         emit NewShard(address(this), name, id, _curator, _ipfsHash); // trigger event
         return true;
     }
-
+    
+    function removeShard(uint shardIndex) public onlyOwner returns (bool) {
+        require(shards[shardIndex].curator != 0);
+        emit RemovedShard(shards[shardIndex].curator, shards[shardIndex].ipfsHash);
+        numberOfShards -= 1; // decrement total number of shards
+        delete shards[shardIndex];
+        return true;
+    }
     /**
       * reading shards array
       */
@@ -66,6 +76,10 @@ contract SimpleDatabase is Ownable {
 
     function getNumberOfShards() public view returns (uint) {
       return numberOfShards;
+    }
+
+    function getShardArrayLength() public constant returns(uint count) {
+      return shards.length;
     }
 
     function buyShard(uint _i) public payable costs(shardPrice) returns (string) {
