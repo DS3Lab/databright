@@ -69,6 +69,7 @@ App = {
 
     // switch to add shard page
     el("#goToShard").addEventListener('click', () => {
+      $('#shardProposal_curator').val($('#accountAddress').text())
       el("#shardProposalCreation").style.display = 'block';
       el("#proposalOverview").style.display = 'none';
 
