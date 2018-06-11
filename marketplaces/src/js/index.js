@@ -94,6 +94,12 @@ App = {
       el("#databaseView").style.display = 'block';
       el("#databaseOverview").style.display = 'none';
     });
+
+    // details button for each shard
+    $('#shard').on('click', '#viewShardBtn', function(){
+      App.loadSingleShard(this.getAttribute("db-addr"), parseInt(this.getAttribute("shard-idx")));
+      el("#databaseView").style.display = 'none';
+    });
     // vote buttons for each proposal
     $('#proposals').on('click', '#voteDatabaseProposalBtn', function(){
       App.loadDatabaseProposalVoting(parseInt(this.getAttribute("data-id")));
@@ -412,18 +418,18 @@ App = {
 
     var el = function(id){ return document.querySelector(id); }; // Selector
     function get_shard_list_entry(shardTuple) {
-      idx = shardTuple[2]
+      idx = shardTuple[0]
       shard = shardTuple[1]
       votingDeadlineDate = new Date(shard[2] * 1000).format('d-m-Y h:i:s')
-      itemText = '<h5>Shard #' + shard[2] + '</h5><p>Added: '
+      itemText = '<h5>Shard #' + idx + '</h5><p>Added: '
       + votingDeadlineDate + '<p>Curator: ' + shard[0] + '<p>Rewarded tokens: '
-      + shard[3] + '<p><button id="viewShardBtn" data-id="' +
+      + shard[3] + '<p><button id="viewShardBtn" db-addr="' + dbaddr + '" shard-idx="' +
       idx + '" class="float-right viewShard">View details</button></p>';
 
       return itemText;
     }
     function isValidShard(shardTuple) {
-      return shard[1][0] != 0
+      return shardTuple[1][0] != 0
     }
     function shardComparator(sT1, sT2) {
       return sT1[1][2] - sT2[1][2];
@@ -433,12 +439,16 @@ App = {
 
     Common.contracts.SimpleDatabase.at(dbaddr).then((db) => {
       db.getShardArrayLength().then((arrLen) => {
-        var allPromises = [];
+      //db.getNumberOfShards().then((arrLen) => {
+        var shardPromises = [];
+        var shardIndices = [];
         for (var i = 0; i < arrLen; i++) {
-          allPromises.push([i, db.getShard(i)])
+          shardPromises.push(db.shards(i))
+          shardIndices.push(i)
         }
-        Promise.all(allPromises).then((allShardTuples) => {
-          var sortedValidShards = allShardTuples
+        Promise.all(shardPromises).then((allShards) => {
+          var sortedValidShards = shardIndices
+                                  .map((e, i) => [e, allShards[i]])
                                   .filter(isValidShard)
                                   .sort(shardComparator)
                                   .map(get_shard_list_entry)

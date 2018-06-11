@@ -10,8 +10,6 @@ contract Database {
 
     function removeShard(uint shardIndex) public returns (bool);
     
-    function getShard(uint _i) public view returns (address, string);
-
     function getNumberOfShards() public view returns (uint);
 
     function getShardArrayLength() public constant returns(uint);

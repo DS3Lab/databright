@@ -67,12 +67,6 @@ contract SimpleDatabase is Ownable {
         delete shards[shardIndex];
         return true;
     }
-    /**
-      * reading shards array
-      */
-    function getShard(uint _i) public view returns (address, string) {
-        return (shards[_i].curator, shards[_i].ipfsHash);
-    }
 
     function getNumberOfShards() public view returns (uint) {
       return numberOfShards;
