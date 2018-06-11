@@ -145,6 +145,18 @@
 
     <br /><br />
     </div>
+    <div id="singleShardView", style="display:none;">
+      <h4>Shard #<span id="singleShard_idx"></span>:</h4>
+      <p><label>Added:</label><span id="singleShard_added"></span>
+      <p><label>Curator:</label><span id="singleShard_curator"></span>
+
+      <p><label>Rewarded tokens:</label><span id="singleShard_rewardedTokens"></span> Curator Tokens
+      <p><label>Files in shard:</label><input id="singleShard_files" name="shardProposalVoting_files[]" type="file" multiple readonly="true">
+        
+      <p><button id="singleShardBackBtn">Back</button>
+      <button id="singleShardChallengeBtn">Propose removal</button>      
+      <hr />
+    </div>
     <div id="databaseProposalVoting", style="display:none;">
       <h4>Vote on adding database</h4>
 

@@ -96,10 +96,25 @@ App = {
     });
 
     // details button for each shard
-    $('#shard').on('click', '#viewShardBtn', function(){
+    $('#shards').on('click', '#viewShardBtn', function(){
       App.loadSingleShard(this.getAttribute("db-addr"), parseInt(this.getAttribute("shard-idx")));
       el("#databaseView").style.display = 'none';
+      el("#singleShardView").style.display = 'block';
     });
+
+    // go back to shards list
+    el("#singleShardBackBtn").addEventListener('click', () => {
+      el("#databaseView").style.display = 'block';
+      el("#singleShardView").style.display = 'none';
+    });
+
+    // challenge shard / propose shard to be removed
+    el("#singleShardChallengeBtn").addEventListener('click', () => {
+      App.challengeShard($('#singleShard_database').text(), $('#singleShard_idx').text())
+      el("#databaseView").style.display = 'block';
+      el("#singleShardView").style.display = 'none';
+    });
+
     // vote buttons for each proposal
     $('#proposals').on('click', '#voteDatabaseProposalBtn', function(){
       App.loadDatabaseProposalVoting(parseInt(this.getAttribute("data-id")));
@@ -439,7 +454,6 @@ App = {
 
     Common.contracts.SimpleDatabase.at(dbaddr).then((db) => {
       db.getShardArrayLength().then((arrLen) => {
-      //db.getNumberOfShards().then((arrLen) => {
         var shardPromises = [];
         var shardIndices = [];
         for (var i = 0; i < arrLen; i++) {
@@ -495,6 +509,38 @@ App = {
         }); 
       });
     });    
+  },
+
+  loadSingleShard: function(dbAddr, shardIdx) {
+
+    Common.contracts.SimpleDatabase.at(dbAddr).then((db) => {
+      db.shards(shardIdx).then((shard) => {
+        $('#singleShard_idx').text(shardIdx);
+        $('#singleShard_added').text(new Date(shard[2] * 1000).format('d-m-Y h:i:s'));
+        $('#singleShard_curator').text(shard[0]);  
+        $('#singleShard_rewardedTokens').text(shard[3]);
+        
+        directoryRefpath = shard[1]
+        ipfs.ls(directoryRefpath, (err, filesAdded) => {
+          if (err) { throw err }
+          fileUrls = filesAdded.map((file) => { return Common.ipfsGatewayURL + file.path;})
+          previewConfigs = filesAdded.map((file) => { return {caption: file.name, downloadUrl: Common.ipfsGatewayURL + file.path, size: file.size, width: "120px"};})
+          $('#singleShard_files').fileinput({
+            initialPreview: fileUrls,
+            initialPreviewAsData: true,
+            initialPreviewConfig: previewConfigs,
+            overwriteInitial: false,
+            showRemove: false,
+            showUpload: false,
+            showBrowse: false
+          }); 
+        });
+      })
+    });    
+  },
+
+  challengeShard: function(dbAddr, shardIdx) {
+    Common.contracts.databaseAssociationInstance.proposeRemoveShard(dbAddr, "", shardIdx);
   }
 }
 
