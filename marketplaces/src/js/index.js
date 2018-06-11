@@ -80,6 +80,12 @@ App = {
       el("#proposalOverview").style.display = 'none';
     });
 
+    // switch to database overview page
+    el("#goToDatabaseOverview").addEventListener('click', () => {
+      el("#databaseOverview").style.display = 'block';
+      el("#proposalOverview").style.display = 'none';
+    });
+
     // vote buttons for each proposal
     $('#proposals').on('click', '#voteDatabaseProposalBtn', function(){
       App.loadDatabaseProposalVoting(parseInt(this.getAttribute("data-id")));
