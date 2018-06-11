@@ -86,6 +86,12 @@ App = {
       el("#proposalOverview").style.display = 'none';
     });
 
+    // details button for each database
+    $('#databases').on('click', '#viewDbDetails', function(){
+      App.loadDatabaseProposalVoting(parseInt(this.getAttribute("data-id")));
+      el("#databaseView").style.display = 'block';
+      el("#databaseOverview").style.display = 'none';
+    });
     // vote buttons for each proposal
     $('#proposals').on('click', '#voteDatabaseProposalBtn', function(){
       App.loadDatabaseProposalVoting(parseInt(this.getAttribute("data-id")));
