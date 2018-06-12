@@ -171,6 +171,7 @@ App = {
           votingDeadline = new Date(prop[3] * 1000).format('d-m-Y H:i:s')
           var shardProposalText;
           var databaseProposalText;
+          var shardRemoveProposalText;
           if (prop[3]*1000 >= Date.now()) { // voting deadline has not yet passed
             // Proposal is still open to voting
             shardProposalText = '<h5><a>#' + id + ' Add shard to "'
@@ -181,6 +182,11 @@ App = {
             databaseProposalText = '<h5><a>#' + id + ' Create database: ' + prop[8] + '</a></h5><p>' + prop[2] + '</a><p>Voting ends at: '
             + votingDeadline + '<p>'+ '<button id="voteDatabaseProposalBtn" data-id="' +
             id + '" class="float-right voteForProposal">Vote</button></p><hr />';
+
+            shardRemoveProposalText = '<h5><a>#' + id + ' Remove shard from"'
+            + dbName + '" database: ' + prop[2] + '</a></h5><p>Voting ends at: '
+            + votingDeadline + '<p>' + '<button id="voteShardRemoveProposalBtn" data-id="' +
+            id + '" class="float-right voteForProposal">Vote</button></p><hr />';
           } else {
             // Proposal voting is closed, proposal can be executed
             executableProposalDescription = 'Voting already ended at: '
@@ -188,6 +194,9 @@ App = {
             id + '" class="float-right voteForProposal">Execute</button></p><hr />';
 
             shardProposalText = '<h5><a>#' + id + ' Add shard to "' + dbName +
+            '" database: ' + prop[2] + '</a></h5><p>' + executableProposalDescription
+
+            shardRemoveProposalText = '<h5><a>#' + id + ' Remove shard from "' + dbName +
             '" database: ' + prop[2] + '</a></h5><p>' + executableProposalDescription
 
             databaseProposalText = '<h5><a>#' + id + ' Create database: ' + prop[8] +
@@ -198,6 +207,8 @@ App = {
             return databaseProposalText;
           } else if (prop[11] == 2) { // Is this a shard proposal?
             return shardProposalText;
+          } else if (prop[11] == 3) { // Is this a shard remove proposal?
+            return shardRemoveProposalText;
           } else  {
             console.log("Can't display proposal " + id + ".(Unknown state of proposal)")
           }
@@ -540,7 +551,7 @@ App = {
   },
 
   challengeShard: function(dbAddr, shardIdx) {
-    Common.contracts.databaseAssociationInstance.proposeRemoveShard(dbAddr, "", shardIdx);
+    Common.databaseAssociationInstance.proposeRemoveShard(dbAddr, "", shardIdx);
   }
 }
 
