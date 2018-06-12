@@ -159,6 +159,17 @@ App = {
       el("#shardProposalVoting").style.display = 'none';
       el("#proposalOverview").style.display = 'block';
     });
+    el("#yayShardRemoveProposal").addEventListener('click', () => {
+      App.voteOnProposal(parseInt($('#shardRemoveProposalVoting_id').text()),true);
+      el("#shardRemoveProposalVoting").style.display = 'none';
+      el("#proposalOverview").style.display = 'block';
+    });
+
+    el("#nayShardRemoveProposal").addEventListener('click', () => {
+      App.voteOnProposal(parseInt($('#shardRemoveProposalVoting_id').text()),false);
+      el("#shardRemoveProposalVoting").style.display = 'none';
+      el("#proposalOverview").style.display = 'block';
+    });
   },
 
   loadProposals: function() {
@@ -519,9 +530,8 @@ App = {
     $(prefix + '_description').text(prop[2]);
     $(prefix + '_requestedReward').text(prop[9]);
     $(prefix + '_deadline').text(new Date(prop[3] * 1000).format('d-m-Y h:i:s'));
-    dbNam = Common.contracts.SimpleDatabase.at(prop[0]).then((db) => {return db.name();}).then((name) => {
-      $(prefix + '_dbtitle').text(name);
-    });
+    $(prefix + '_dbtitle').text(Common.dbAddressToNameDict[prop[o]]);
+    
 
 
     pathPromise = isRemoveProposal ?
