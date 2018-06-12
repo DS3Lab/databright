@@ -474,7 +474,7 @@ App = {
       votingDeadlineDate = new Date(shard[2] * 1000).format('d-m-Y h:i:s')
 
       buttonEnablerText = App.hasEnoughQueryBalance ? '' : ' disabled="true"'
-y
+
       itemText = '<h5>Shard #' + idx + '</h5><p>Added: '
       + votingDeadlineDate + '<p>Curator: ' + shard[0] + '<p>Rewarded tokens: '
       + shard[3] + '<p><button id="viewShardBtn" db-addr="' + dbaddr + '" shard-idx="' +
@@ -542,7 +542,7 @@ y
     $(prefix + '_description').text(prop[2]);
     $(prefix + '_requestedReward').text(prop[9]);
     $(prefix + '_deadline').text(new Date(prop[3] * 1000).format('d-m-Y h:i:s'));
-    $(prefix + '_dbtitle').text(Common.dbAddressToNameDict[prop[o]]);
+    $(prefix + '_dbtitle').text(Common.dbAddressToNameDict[prop[0]]);
     
 
 
