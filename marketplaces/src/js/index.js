@@ -1,5 +1,7 @@
 App = {
   databases: null,
+  minimumQueryBalance: null,
+  hasEnoughQueryBalance: null,
   bindEvents: function() {
 
     var el = function(id){ return document.querySelector(id); }; // Selector
@@ -395,6 +397,12 @@ App = {
             var share = balance / result.c[0] * 100
             $('#accountBalance').text(balance + " (" + share + "%)" ); //calculates shares
           });
+          Common.databaseAssociationInstance.minimumQueryBalance().then(function(mqb) {
+            App.minimumQueryBalance = mqb
+            return mqb
+          }).then((mqb) => {
+            App.hasEnoughQueryBalance = balance >= mqb
+          })
           $('#accountAddress').text(account);
           Common.databaseAssociationInstance.minimumProposeBalance().then(function(minPropBal) {
             $("#goToShard").text("Add data (min " + minPropBal + ")")
@@ -404,6 +412,7 @@ App = {
               $("#goToNewDatabase").prop('disabled', true);
             }
           });
+          
           
 
         }).catch(function(err) {
@@ -463,10 +472,13 @@ App = {
       idx = shardTuple[0]
       shard = shardTuple[1]
       votingDeadlineDate = new Date(shard[2] * 1000).format('d-m-Y h:i:s')
+
+      buttonEnablerText = App.hasEnoughQueryBalance ? '' : ' disabled="true"'
+y
       itemText = '<h5>Shard #' + idx + '</h5><p>Added: '
       + votingDeadlineDate + '<p>Curator: ' + shard[0] + '<p>Rewarded tokens: '
       + shard[3] + '<p><button id="viewShardBtn" db-addr="' + dbaddr + '" shard-idx="' +
-      idx + '" class="float-right viewShard">View details</button></p>';
+      idx + '" class="float-right viewShard"' + buttonEnablerText + '>View details (min ' + App.minimumQueryBalance + ')</button></p>';
 
       return itemText;
     }

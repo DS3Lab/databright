@@ -23,6 +23,7 @@ contract DatabaseAssociation is Ownable {
     uint public minimumQuorum;
     uint public debatingPeriodInMinutes;
     uint public minimumProposeBalance;
+    uint public minimumQueryBalance;
     Proposal[] public proposals;
     uint public numProposals;
     uint public creationReward; // Temporary fixed reward for creating a new database, just so that voting on the first shard can happen
@@ -77,9 +78,9 @@ contract DatabaseAssociation is Ownable {
      *
      * First time setup
      */
-    function DatabaseAssociation(uint minimumSharesToPassAVote, uint minutesForDebate) payable public {
+    function DatabaseAssociation(uint minimumSharesToPassAVote, uint minutesForDebate, uint minQueryBalance) payable public {
         CuratorToken sharesAddress = new CuratorToken();
-        changeProposalRules(sharesAddress, minimumSharesToPassAVote, minutesForDebate, minimumSharesToPassAVote);
+        changeMarketRules(sharesAddress, minimumSharesToPassAVote, minutesForDebate, minimumSharesToPassAVote, minQueryBalance);
         databaseFactory = new SimpleDatabaseFactory(); //create new factory
         initialCurator = owner;
         sharesTokenAddress.mint(initialCurator, minimumSharesToPassAVote);
@@ -87,7 +88,7 @@ contract DatabaseAssociation is Ownable {
     }
 
     /**
-     * Change proposal rules
+     * Change market rules
      *
      * Make so that proposals need tobe discussed for at least `minutesForDebate/60` hours
      * and all voters combined must own more than `minimumSharesToPassAVote` shares of token `sharesAddress` to be executed
@@ -97,14 +98,16 @@ contract DatabaseAssociation is Ownable {
      * @param minimumSharesToPassAVote proposal can vote only if the sum of shares held by all voters exceed this number
      * @param minutesForDebate the minimum amount of delay between when a proposal is made and when it can be executed
      * @param minProposeBalance the minimum amount of CuratorTokens that a proposer needs to hold when creating a proposal
+     * @param minQueryBalance the minimum amount of CuratorTokens that a user needs to read the data
      */
-    function changeProposalRules(CuratorToken sharesAddress, uint minimumSharesToPassAVote, uint minutesForDebate, uint minProposeBalance) onlyOwner public{
+    function changeMarketRules(CuratorToken sharesAddress, uint minimumSharesToPassAVote, uint minutesForDebate, uint minProposeBalance, uint minQueryBalance) onlyOwner public{
         sharesTokenAddress = CuratorToken(sharesAddress);
         require(sharesTokenAddress.owner() == address(this));
         if (minimumSharesToPassAVote == 0 ) minimumSharesToPassAVote = 1;
         minimumQuorum = minimumSharesToPassAVote;
         debatingPeriodInMinutes = minutesForDebate;
         minimumProposeBalance = minProposeBalance;
+        minimumQueryBalance = minQueryBalance;
         emit ChangeOfRules(minimumQuorum, debatingPeriodInMinutes, sharesTokenAddress);
     }
     
