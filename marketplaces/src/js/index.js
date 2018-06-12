@@ -110,7 +110,7 @@ App = {
 
     // challenge shard / propose shard to be removed
     el("#singleShardChallengeBtn").addEventListener('click', () => {
-      App.challengeShard($('#singleShard_database').text(), $('#singleShard_idx').text())
+      App.challengeShard($('#singleShard_dbAddr').text(), $('#singleShard_idx').text())
       el("#databaseView").style.display = 'block';
       el("#singleShardView").style.display = 'none';
     });
@@ -124,6 +124,11 @@ App = {
     $('#proposals').on('click', '#voteShardProposalBtn', function(){
       App.loadShardProposalVoting(parseInt(this.getAttribute("data-id")));
       el("#shardProposalVoting").style.display = 'block';
+      el("#proposalOverview").style.display = 'none';
+    });
+    $('#proposals').on('click', '#voteShardRemoveProposalBtn', function(){
+      App.loadShardRemoveProposalVoting(parseInt(this.getAttribute("data-id")));
+      el("#shardRemoveProposalVoting").style.display = 'block';
       el("#proposalOverview").style.display = 'none';
     });
     $('#proposals').on('click', '#executeProposalBtn', function(){
@@ -183,7 +188,7 @@ App = {
             + votingDeadline + '<p>'+ '<button id="voteDatabaseProposalBtn" data-id="' +
             id + '" class="float-right voteForProposal">Vote</button></p><hr />';
 
-            shardRemoveProposalText = '<h5><a>#' + id + ' Remove shard from"'
+            shardRemoveProposalText = '<h5><a>#' + id + ' Remove shard from "'
             + dbName + '" database: ' + prop[2] + '</a></h5><p>Voting ends at: '
             + votingDeadline + '<p>' + '<button id="voteShardRemoveProposalBtn" data-id="' +
             id + '" class="float-right voteForProposal">Vote</button></p><hr />';
@@ -495,21 +500,40 @@ App = {
   loadShardProposalVoting: function(proposalID) {
 
     Common.databaseAssociationInstance.proposals(proposalID).then(function(prop){
-      $('#shardProposalVoting_id').text(proposalID);
-      $('#shardProposalVoting_description').text(prop[2]);
-      $('#shardProposalVoting_requestedReward').text(prop[9]);
-      $('#shardProposalVoting_deadline').text(new Date(prop[3] * 1000).format('d-m-Y h:i:s'));
-      dbNam = Common.contracts.SimpleDatabase.at(prop[0]).then((db) => {return db.name();}).then((name) => {
-        $('#shardProposalVoting_dbtitle').text(name);
-      });
+      App.loadProposalVotingWithPrefix(false, prop, proposalID)
+    });    
+  },
 
-      
-      directoryRefpath = prop[8]
+  loadShardRemoveProposalVoting: function(proposalID) {
+
+    Common.databaseAssociationInstance.proposals(proposalID).then(function(prop){
+      App.loadProposalVotingWithPrefix(true, prop, proposalID)
+    });    
+  },
+
+  loadProposalVotingWithPrefix: function(isRemoveProposal, prop, proposalID) {
+
+    prefix = isRemoveProposal ? '#shardRemoveProposalVoting' : '#shardProposalVoting'
+    
+    $(prefix + '_id').text(proposalID);
+    $(prefix + '_description').text(prop[2]);
+    $(prefix + '_requestedReward').text(prop[9]);
+    $(prefix + '_deadline').text(new Date(prop[3] * 1000).format('d-m-Y h:i:s'));
+    dbNam = Common.contracts.SimpleDatabase.at(prop[0]).then((db) => {return db.name();}).then((name) => {
+      $(prefix + '_dbtitle').text(name);
+    });
+
+
+    pathPromise = isRemoveProposal ?
+                  Common.contracts.SimpleDatabase.at(prop[0]).then((db) => db.shards(prop[9])).then((shard) => shard[1]) :
+                  Promise.resolve(prop[8])
+
+    pathPromise.then((directoryRefpath) => {
       ipfs.ls(directoryRefpath, (err, filesAdded) => {
         if (err) { throw err }
         fileUrls = filesAdded.map((file) => { return Common.ipfsGatewayURL + file.path;})
         previewConfigs = filesAdded.map((file) => { return {caption: file.name, downloadUrl: Common.ipfsGatewayURL + file.path, size: file.size, width: "120px"};})
-        $('#shardProposalVoting_files').fileinput({
+        $(prefix + '_files').fileinput({
           initialPreview: fileUrls,
           initialPreviewAsData: true,
           initialPreviewConfig: previewConfigs,
@@ -519,13 +543,15 @@ App = {
           showBrowse: false
         }); 
       });
-    });    
+    })
   },
 
   loadSingleShard: function(dbAddr, shardIdx) {
 
     Common.contracts.SimpleDatabase.at(dbAddr).then((db) => {
       db.shards(shardIdx).then((shard) => {
+        $('#singleShard_dbAddr').text(dbAddr);
+        $('#singleShard_dbName').text(Common.dbAddressToNameDict[dbAddr]);
         $('#singleShard_idx').text(shardIdx);
         $('#singleShard_added').text(new Date(shard[2] * 1000).format('d-m-Y h:i:s'));
         $('#singleShard_curator').text(shard[0]);  

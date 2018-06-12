@@ -146,12 +146,12 @@
     <br /><br />
     </div>
     <div id="singleShardView", style="display:none;">
-      <h4>Shard #<span id="singleShard_idx"></span>:</h4>
+      <h4>Shard #<span id="singleShard_idx"></span> of "<span id="singleShard_dbName"></span>(<span id="singleShard_dbAddr"></span>)</h4>
       <p><label>Added:</label><span id="singleShard_added"></span>
       <p><label>Curator:</label><span id="singleShard_curator"></span>
 
       <p><label>Rewarded tokens:</label><span id="singleShard_rewardedTokens"></span> Curator Tokens
-      <p><label>Files in shard:</label><input id="singleShard_files" name="shardProposalVoting_files[]" type="file" multiple readonly="true">
+      <p><label>Files in shard:</label><input id="singleShard_files" name="singleShard_files[]" type="file" multiple readonly="true">
         
       <p><button id="singleShardBackBtn">Back</button>
       <button id="singleShardChallengeBtn">Propose removal</button>      
@@ -173,7 +173,7 @@
       <button class="goToProposals">View Proposals</button>
       <hr />
     </div>
-    <div id="shardProposalVoting", style="display:none;">
+    <div id="shardProposalVoting", style="display:none;"> 
       <h4>Vote on adding shard</h4>
 
       <label>Proposal #<span id="shardProposalVoting_id"></span> to add files to database:</label><span id="shardProposalVoting_dbtitle"></span>
@@ -182,6 +182,24 @@
       <p><label>Files proposed:</label><input id="shardProposalVoting_files" name="shardProposalVoting_files[]" type="file" multiple readonly="true">
       <p><label>Requested reward:</label><span id="shardProposalVoting_requestedReward"></span> Curator Tokens
       <p><label>Voting ends at:</label> <span id="shardProposalVoting_deadline"></span>
+ 
+      <p><label>Accept this proposal?</label>
+      <p><button id="yayShardProposal">Yay</button>
+      <button id="nayShardProposal">Nay</button>
+      
+      <button class="goToProposals">View Proposals</button>
+      <hr />
+    </div>
+
+    <div id="shardRemoveProposalVoting", style="display:none;">
+      <h4>Vote on removing shard</h4>
+
+      <label>Proposal #<span id="shardRemoveProposalVoting_id"></span> to add files to database:</label><span id="shardRemoveProposalVoting_dbtitle"></span>
+      <p><label>Proposal description:</label><span id="shardRemoveProposalVoting_description"></span>
+
+      <p><label>Files proposed for deletion:</label><input id="shardRemoveProposalVoting_files" name="shardRemoveProposalVoting_files[]" type="file" multiple readonly="true">
+      <p><label>Reward originally rewarded:</label><span id="shardRemoveProposalVoting_requestedReward"></span> Curator Tokens
+      <p><label>Voting ends at:</label> <span id="shardRemoveProposalVoting_deadline"></span>
  
       <p><label>Accept this proposal?</label>
       <p><button id="yayShardProposal">Yay</button>
