@@ -14,7 +14,7 @@ def stringify_event(obj):
 def keccakify(event_str):
   keccak_hash = keccak.new(digest_bits=256)
   keccak_hash.update(event_str.encode('ascii'))
-  return '0x' + keccak_hash.hexdigest()
+  return keccak_hash.hexdigest() # We are omitting the 0x prefix here, as the rust backend doesn't need it
 
 for filename in os.listdir(json_dir):
   if filename.endswith(".json"):

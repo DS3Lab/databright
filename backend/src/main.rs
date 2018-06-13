@@ -11,6 +11,7 @@ use std::collections::HashMap;
 use web3::contract::Contract;
 use web3::types::{Address, FilterBuilder, BlockNumber, H256};
 use web3::futures::{Future, Stream};
+use std::str::FromStr;
 use ipfs_api::IpfsClient;
 fn main() {
 
@@ -21,9 +22,9 @@ fn main() {
     let conf = Ini::load_from_file("config.ini").unwrap();
     let contracts_section = conf.section(Some("Contracts".to_owned())).unwrap();
     let contracts = contracts_section.get("contracts").unwrap();
-    let model_market_address: Address = contracts_section.get("ModelMarket").unwrap().parse().unwrap();
-    debug!("Contracts to use: {}", contracts);
-    debug!("ModelMarket to use: {}", model_market_address);
+    let contract_address: Address = contracts_section.get("DatabaseAssociation").unwrap().parse().unwrap();
+    info!("Contracts to use: {}", contracts);
+    info!("DatabaseAssociation to use: {}", contract_address);
 
     let web3_section = conf.section(Some("Web3".to_owned())).unwrap();
     let ws_url = web3_section.get("websocket_transport_url").unwrap();
@@ -31,14 +32,14 @@ fn main() {
         let replay_string = web3_section.get("replay_past_events").unwrap();
         match replay_string.parse::<bool>() {
             Ok(b) => b,
-            Err(_) => {println!("Couldn't parse replay_past_events from configuration. Skipping events from the past.."); false },
+            Err(_) => {error!("Couldn't parse replay_past_events from configuration. Skipping events from the past.."); false },
         }
     };
     let subscribe_future_events = {
         let subscribe_string = web3_section.get("subscribe_future_events").unwrap();
         match subscribe_string.parse::<bool>() {
             Ok(b) => b,
-            Err(_) => {println!("Couldn't parse subscribe_future_events from configuration. Not subscribing to future events.."); false },
+            Err(_) => {error!("Couldn't parse subscribe_future_events from configuration. Not subscribing to future events.."); false },
         }
     };
     let last_processed_block_id = web3_section.get("last_processed_block_id").unwrap();
@@ -59,7 +60,10 @@ fn main() {
             let rr = rec.unwrap();
             let event_name = rr.get(0).unwrap();
             let topic_hash = rr.get(1).unwrap();
-            let topic_bytes = H256::from(topic_hash.as_bytes());
+            let topic_bytes = match H256::from_str(topic_hash) {
+                Ok(hash) => hash,
+                Err(err) => {error!("Couldn't convert hash of {} topic from CSV file: {}", event_name, err); H256::default()},
+            };
             topics.insert((contract, event_name.to_owned()), topic_bytes);
         }
     }
@@ -84,19 +88,16 @@ fn main() {
 	});
     event_loop.run(bal).unwrap();
 
-    let model_market_contract = Contract::from_json(
+    let contract = Contract::from_json(
         web3.eth(),
-        model_market_address,
-        include_bytes!("../../marketplaces/build/ModelMarket.abi"),
+        contract_address,
+        include_bytes!("../../marketplaces/build/DatabaseAssociation.abi"),
     ).unwrap();
 
-    // TODO To filter for specific events:
-    //let desired_topics: std::option::Option<std::vec::Vec<web3::types::H256>> = Some(
-    //    vec![*topics.get(&("DatabaseAssociation", "Voted".into())).unwrap(),
-    //         *topics.get(&("DatabaseAssociation", "ProposalAdded".into())).unwrap()
-    //    ]);
+    // To filter for specific events:
     let desired_topics: std::option::Option<std::vec::Vec<web3::types::H256>> = Some(
-        vec![*topics.get(&("ModelMarket", "ModelSubmitted".into())).unwrap()]);
+        vec![*topics.get(&("DatabaseAssociation", "ProposalAdded".into())).unwrap()]);
+    
     let num_events = match desired_topics {
         Some(ref vec) => vec.len(),
         None => 0
@@ -118,10 +119,9 @@ fn main() {
                     Err(_) => {warn!("Couldn't parse last_processed_block_id from configuration. Starting from earliest block..."); BlockNumber::Earliest },
                 }
             };
-        debug!("Replaying events from {:?} to latest block", from_block);
+        info!("Replaying events from {:?} to latest block", from_block);
         let filter = FilterBuilder::default()
-            .address(vec![model_market_contract
-    .address()])
+            .address(vec![contract.address()])
             .from_block(from_block)
             .to_block(BlockNumber::Latest)
             .topics(
@@ -137,7 +137,7 @@ fn main() {
             .and_then(|filter| {
                 let res = filter.logs().and_then(|logs| {
                     for log in logs {
-                        debug!("Replayed log: {:?}", log);
+                        info!("Replayed log: {:?}", log);
                         handle_log(log, true, &topics);
                     }
                     Ok(())
@@ -147,15 +147,14 @@ fn main() {
             .map_err(|_| ());
 
         event_loop.run(event_future);
-        debug!("Finished replay of events");
+        info!("Finished replay of events");
     }
 
     if subscribe_future_events {
         // Subscribe to current topics and handle them as they happen
         info!("Subscribing to current events..");
         let filter = FilterBuilder::default()
-            .address(vec![model_market_contract
-    .address()])
+            .address(vec![contract.address()])
             .topics(
                 desired_topics,
                 None,
@@ -168,7 +167,7 @@ fn main() {
             .subscribe_logs(filter)
             .then(|sub| {
                 sub.unwrap().for_each(|log| {
-                    debug!("Subscribed log: {:?}", log);
+                    info!("Subscribed log: {:?}", log);
                     handle_log(log, false, &topics);
                     Ok(())
                 })

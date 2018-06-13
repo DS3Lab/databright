@@ -1,5 +1,5 @@
 [package]
-name = "databright_modelmarket"
+name = "databright_backend"
 version = "0.1.0"
 authors = ["Florian Chlan <florian@chlan.net>"]
 
