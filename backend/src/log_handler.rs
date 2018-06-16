@@ -1,11 +1,15 @@
 extern crate web3;
 extern crate byteorder;
+extern crate tokio_core;
 
 use std::collections::HashMap;
 use self::byteorder::{ByteOrder, BigEndian};
-use web3::types::Address;
+use web3::types::{Address, H256, Bytes};
+use web3::contract::{Options, Contract};
+use web3::transports::WebSocket;
+use web3::futures::Future;
+use ipfs_api::IpfsClient;
 use std::str;
-use web3::types::H256;
 
 macro_rules! hashmap {
     ($( $key: expr => $val: expr ),*) => {{
@@ -15,7 +19,11 @@ macro_rules! hashmap {
     }}
 }
 
-pub fn handle_log(log: web3::types::Log, replayed_event: bool, topics: &HashMap<(&str, String), H256>) {
+pub fn handle_log(log: web3::types::Log,
+                  replayed_event: bool,
+                  topics: &HashMap<(&str, String), H256>,
+                  dba_contract: &Contract<WebSocket>,
+                  ipfs_client: &IpfsClient) {
     info!("Handling log: {:?}", log.topics[0]);
     
     if log.topics[0] == *topics.get(&("DatabaseAssociation", "ProposalAdded".into())).unwrap() {
@@ -30,11 +38,19 @@ pub fn handle_log(log: web3::types::Log, replayed_event: bool, topics: &HashMap<
                                                                      "curator" => "address",
                                                                      "state" => "uint"];
         let propadded_deserializer = LogdataDeserializer::new(&log.data.0, fields, order);
-
-        if propadded_deserializer.get_u64("state") == 2 { // State == 2: This is a shard add proposal
+        let state = propadded_deserializer.get_u64("state");
+        debug!("Proposal has state {}", state);
+        if state == 2 { // State == 2: This is a shard add proposal
             // Extract IPFS hashes from web3
-                let propID = propadded_deserializer.get_u64("proposalID");
-                
+            let propID = propadded_deserializer.get_u64("proposalID");
+            let prop_result = dba_contract.query("proposals", (propID,), None, Options::default(), None);
+            // TODO Execute query, get database address from proposal, fetch shards from datase, fetch IPFS hashes
+
+            
+            // This shard contains the Iris dataset as an example. The real dataset should be loaded from the SimpleDatabase contract.
+            let ipfs_hashes = vec!["QmV8VSp8S5UfXF4tfGNBSU6VRP6uaGzYA3u5gwxDPXZDiP"]; // TODO Use real ipfs_shards, not this dummy.
+            let ipfs_hashes_prefixed = ipfs_hashes.iter().map(|hash| Some("/ipfs/" + hash));
+            let ls_request_futures = ipfs_hashes_prefixed.iter(|hash| ipfs_client.ls(hash));
             // Load data from IPFS (put it in a temp dir)
             // Load into matrix (using database specific adapter)
         }

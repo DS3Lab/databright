@@ -141,7 +141,7 @@ fn main() {
                 let res = filter.logs().and_then(|logs| {
                     for log in logs {
                         info!("Replayed log: {:?}", log);
-                        handle_log(log, true, &topics);
+                        log_handler::handle_log(log, true, &topics, &contract, &ipfs_client);
                     }
                     Ok(())
                 });
@@ -171,7 +171,7 @@ fn main() {
             .then(|sub| {
                 sub.unwrap().for_each(|log| {
                     info!("Subscribed log: {:?}", log);
-                    handle_log(log, false, &topics);
+                    log_handler::handle_log(log, false, &topics, &contract, &ipfs_client);
                     Ok(())
                 })
             })
