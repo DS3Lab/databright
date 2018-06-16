@@ -1,9 +1,51 @@
+extern crate web3;
 extern crate byteorder;
 
 use std::collections::HashMap;
 use self::byteorder::{ByteOrder, BigEndian};
 use web3::types::Address;
 use std::str;
+use web3::types::H256;
+
+macro_rules! hashmap {
+    ($( $key: expr => $val: expr ),*) => {{
+         let mut map = ::std::collections::HashMap::new();
+         $( map.insert($key, $val); )*
+         map
+    }}
+}
+
+pub fn handle_log(log: web3::types::Log, replayed_event: bool, topics: &HashMap<(&str, String), H256>) {
+    info!("Handling log: {:?}", log.topics[0]);
+    
+    if log.topics[0] == *topics.get(&("DatabaseAssociation", "ProposalAdded".into())).unwrap() {
+        // Initialize event deserializer
+        let order = vec!["proposalID", "recipient", "amount", "description", "argument", "argument2", "curator", "state"];
+        let fields: HashMap<&str, &str> = hashmap!["proposalID" => "uint",
+                                                                     "recipient" => "address",
+                                                                     "amount" => "uint",
+                                                                     "description" => "string",
+                                                                     "argument" => "string",
+                                                                     "argument2" => "uint",
+                                                                     "curator" => "address",
+                                                                     "state" => "uint"];
+        let propadded_deserializer = LogdataDeserializer::new(&log.data.0, fields, order);
+
+        if propadded_deserializer.get_u64("state") == 2 { // State == 2: This is a shard add proposal
+            // Extract IPFS hashes from web3
+                let propID = propadded_deserializer.get_u64("proposalID");
+                
+            // Load data from IPFS (put it in a temp dir)
+            // Load into matrix (using database specific adapter)
+        }
+        
+    } else {
+        info!("Unhandled log: {:?}", log);
+    }
+    
+    
+}
+
 
 pub struct LogdataDeserializer<'a> {
     order: Vec<&'a str>,

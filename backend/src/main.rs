@@ -14,15 +14,7 @@ use web3::futures::{Future, Stream};
 use std::str::FromStr;
 use ipfs_api::IpfsClient;
 
-mod event_deserializer;
-
-macro_rules! hashmap {
-    ($( $key: expr => $val: expr ),*) => {{
-         let mut map = ::std::collections::HashMap::new();
-         $( map.insert($key, $val); )*
-         map
-    }}
-}
+mod log_handler;
 
 fn main() {
 
@@ -187,25 +179,4 @@ fn main() {
 
         event_loop.run(subscription_future);
     }
-}
-
-fn handle_log(log: web3::types::Log, replayed_event: bool, topics: &HashMap<(&str, String), H256>) {
-    info!("Handling log: {:?}", log.topics[0]);
-    
-    if log.topics[0] == *topics.get(&("DatabaseAssociation", "ProposalAdded".into())).unwrap() {
-        let order = vec!["proposalID", "recipient", "amount", "description", "argument", "argument2", "curator", "state"];
-        let fields: std::collections::HashMap<&str, &str> = hashmap!["proposalID" => "uint",
-                                                                     "recipient" => "address",
-                                                                     "amount" => "uint",
-                                                                     "description" => "string",
-                                                                     "argument" => "string",
-                                                                     "argument2" => "uint",
-                                                                     "curator" => "address",
-                                                                     "state" => "uint"];
-        let propadded_deserializer = event_deserializer::LogdataDeserializer::new(&log.data.0, fields, order);
-    } else {
-        info!("Unhandled log: {:?}", log);
-    }
-    
-    
 }
