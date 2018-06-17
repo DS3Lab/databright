@@ -140,16 +140,18 @@ fn main() {
 
         let event_future = web3.eth_filter()
             .create_logs_filter(filter)
+            .map_err(|err| err.to_string())
             .and_then(|filter| {
-                let res = filter.logs().and_then(|logs| {
-                    let all_log_futures: Vec<Box<Future<Item=u64, Error=web3::Error>>> = logs.iter().map(|log| log_handler::handle_log(log, true, &topics, &contract, &ipfs_client)).collect();
+                let res = filter.logs().map_err(|err| err.to_string()).and_then(|logs| {
+                    let all_log_futures: Vec<Box<Future<Item=(), Error=String>>> = logs.iter().map(|log| log_handler::handle_log(log, true, &topics, &contract, &ipfs_client)).collect();
                     join_all(all_log_futures)
                 });
                 res
-            })
-            .map_err(|_| ());
+            });
+            
 
-        event_loop.run(event_future);
+        let result = event_loop.run(event_future);
+        println!("{:?}", result);
         info!("Finished replay of events");
     }
 

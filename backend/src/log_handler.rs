@@ -25,7 +25,7 @@ pub fn handle_log(log: &web3::types::Log,
                   replayed_event: bool,
                   topics: &HashMap<(&str, String), H256>,
                   dba_contract: &Contract<WebSocket>,
-                  ipfs_client: &IpfsClient) -> Box<Future<Item=u64, Error=web3::Error>> {
+                  ipfs_client: &IpfsClient) -> Box<Future<Item=(), Error=String>> {
     info!("Handling log: {:?}", log.topics[0]);
     
     if log.topics[0] == *topics.get(&("DatabaseAssociation", "ProposalAdded".into())).unwrap() {
@@ -45,7 +45,11 @@ pub fn handle_log(log: &web3::types::Log,
         if state == 2 { // State == 2: This is a shard add proposal
             // Extract IPFS hashes from web3
             let propID = propadded_deserializer.get_u64("proposalID");
-            //let prop_result_ftr = dba_contract.query("proposals", (propID,), None, Options::default(), None);
+            //: web3::contract::QueryResult<Vec<String>, _>
+            let prop_result_ftr = dba_contract.query::<Vec<String>, _,_,_>("proposals", (propID,), None, Options::default(), None);
+            let printed_prop_res = prop_result_ftr.and_then(|res| {error!("debug output{:?}", res); ok(()) });
+            return Box::new(printed_prop_res.map_err(|err| err.to_string()));
+            //let res: Future<Item=Bytes, Error=()> = prop_result_ftr;
             //let return_future = prop_result_ftr.and_then(|res| {debug!("received {:?}", res);})
             // TODO Execute query, get database address from proposal, fetch shards from datase, fetch IPFS hashes
 
@@ -63,7 +67,7 @@ pub fn handle_log(log: &web3::types::Log,
         info!("Unhandled log: {:?}", log);
     }
 
-    return Box::new(ok(10)); // TODO Return proper value from feature. This is only for debugging!
+    return Box::new(ok(())); // TODO Return proper value from feature. This is only for debugging!
 }
 
 
