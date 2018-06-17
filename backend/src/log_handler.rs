@@ -1,6 +1,7 @@
 extern crate web3;
 extern crate byteorder;
 extern crate tokio_core;
+extern crate futures;
 
 use std::collections::HashMap;
 use self::byteorder::{ByteOrder, BigEndian};
@@ -8,6 +9,7 @@ use web3::types::{Address, H256, Bytes};
 use web3::contract::{Options, Contract};
 use web3::transports::WebSocket;
 use web3::futures::Future;
+use futures::future::ok;
 use ipfs_api::IpfsClient;
 use std::str;
 
@@ -19,11 +21,11 @@ macro_rules! hashmap {
     }}
 }
 
-pub fn handle_log(log: web3::types::Log,
+pub fn handle_log(log: &web3::types::Log,
                   replayed_event: bool,
                   topics: &HashMap<(&str, String), H256>,
                   dba_contract: &Contract<WebSocket>,
-                  ipfs_client: &IpfsClient) {
+                  ipfs_client: &IpfsClient) -> Box<Future<Item=u64, Error=web3::Error>> {
     info!("Handling log: {:?}", log.topics[0]);
     
     if log.topics[0] == *topics.get(&("DatabaseAssociation", "ProposalAdded".into())).unwrap() {
@@ -43,23 +45,25 @@ pub fn handle_log(log: web3::types::Log,
         if state == 2 { // State == 2: This is a shard add proposal
             // Extract IPFS hashes from web3
             let propID = propadded_deserializer.get_u64("proposalID");
-            let prop_result = dba_contract.query("proposals", (propID,), None, Options::default(), None);
+            //let prop_result_ftr = dba_contract.query("proposals", (propID,), None, Options::default(), None);
+            //let return_future = prop_result_ftr.and_then(|res| {debug!("received {:?}", res);})
             // TODO Execute query, get database address from proposal, fetch shards from datase, fetch IPFS hashes
 
             
             // This shard contains the Iris dataset as an example. The real dataset should be loaded from the SimpleDatabase contract.
-            let ipfs_hashes = vec!["QmV8VSp8S5UfXF4tfGNBSU6VRP6uaGzYA3u5gwxDPXZDiP"]; // TODO Use real ipfs_shards, not this dummy.
-            let ipfs_hashes_prefixed = ipfs_hashes.iter().map(|hash| Some("/ipfs/" + hash));
-            let ls_request_futures = ipfs_hashes_prefixed.iter(|hash| ipfs_client.ls(hash));
+            //let ipfs_hashes = vec!["QmV8VSp8S5UfXF4tfGNBSU6VRP6uaGzYA3u5gwxDPXZDiP"]; // TODO Use real ipfs_shards, not this dummy.
+            //let ipfs_hashes_prefixed = ipfs_hashes.iter().map(|hash| Some(&format!("/ipfs/{}", hash)[..]));
+            //let ls_request_futures = ipfs_hashes_prefixed.map(|hash| ipfs_client.ls(hash));    
             // Load data from IPFS (put it in a temp dir)
             // Load into matrix (using database specific adapter)
+
         }
         
     } else {
         info!("Unhandled log: {:?}", log);
     }
-    
-    
+
+    return Box::new(ok(10)); // TODO Return proper value from feature. This is only for debugging!
 }
 
 

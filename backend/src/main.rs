@@ -5,13 +5,16 @@ extern crate web3;
 #[macro_use] extern crate log;
 extern crate env_logger;
 extern crate ipfs_api;
+extern crate futures;
 
 use ini::Ini;
 use std::collections::HashMap;
 use web3::contract::Contract;
-use web3::types::{Address, FilterBuilder, BlockNumber, H256};
+use web3::types::{Address, FilterBuilder, BlockNumber, H256, Log};
 use web3::futures::{Future, Stream};
 use std::str::FromStr;
+use futures::future::join_all;
+use futures::stream;
 use ipfs_api::IpfsClient;
 
 mod log_handler;
@@ -51,7 +54,7 @@ fn main() {
     let ipfs_node_ip = ipfs_section.get("node_ip").unwrap();
     let ipfs_node_port = ipfs_section.get("node_port").unwrap();
     let mut ipfs_core = tokio_core::reactor::Core::new().unwrap();
-    let ipfs_client = IpfsClient::new(&ipfs_core.handle(), ipfs_node_ip, ipfs_node_port.parse::<u16>().unwrap());
+    let ipfs_client = IpfsClient::new(&ipfs_core.handle(), ipfs_node_ip, ipfs_node_port.parse::<u16>().unwrap()).unwrap();
 
     // Populate topic hashmap
     info!("Loading topic hashes from ../marketplaces/build/*.topic files..");
@@ -139,11 +142,8 @@ fn main() {
             .create_logs_filter(filter)
             .and_then(|filter| {
                 let res = filter.logs().and_then(|logs| {
-                    for log in logs {
-                        info!("Replayed log: {:?}", log);
-                        log_handler::handle_log(log, true, &topics, &contract, &ipfs_client);
-                    }
-                    Ok(())
+                    let all_log_futures: Vec<Box<Future<Item=u64, Error=web3::Error>>> = logs.iter().map(|log| log_handler::handle_log(log, true, &topics, &contract, &ipfs_client)).collect();
+                    join_all(all_log_futures)
                 });
                 res
             })
@@ -171,7 +171,7 @@ fn main() {
             .then(|sub| {
                 sub.unwrap().for_each(|log| {
                     info!("Subscribed log: {:?}", log);
-                    log_handler::handle_log(log, false, &topics, &contract, &ipfs_client);
+                    log_handler::handle_log(&log, false, &topics, &contract, &ipfs_client);
                     Ok(())
                 })
             })
