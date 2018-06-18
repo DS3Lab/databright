@@ -2,6 +2,7 @@ extern crate web3;
 extern crate byteorder;
 extern crate tokio_core;
 extern crate futures;
+extern crate hyper;
 
 use std::collections::HashMap;
 use self::byteorder::{ByteOrder, BigEndian};
@@ -12,7 +13,10 @@ use web3::contract::{Options, Contract};
 use web3::futures::Future;
 use futures::future::{ok, join_all};
 use ipfs_api::IpfsClient;
+use self::hyper::Chunk;
+use ipfs_api;
 use std::str;
+use std;
 
 macro_rules! hashmap {
     ($( $key: expr => $val: expr ),*) => {{
@@ -62,41 +66,40 @@ pub fn handle_log(log: &web3::types::Log,
                 // To get all files from IPFS, we first need to fetch all shards from Ethereum
                 // To loop through all shards in the array, the array length is needed. 
                 ok(db_contract).join(db_contract.query::<u64, _,_,_>("getShardArrayLength", (), None, Options::default(), None))
-            }).and_then(|(db_contract, arrlen)| {
+            }).map_err(|err| err.to_string())
+            .and_then(|(db_contract, arrlen)| {
 
                 let mut all_file_download_futures = Vec::new();
                 for i in 0..arrlen {
                     // Loop through the array and fetch each shard individually
                     let fut = ok(i).and_then(|i| db_contract.query::<(Address, String, u64, u64), _,_,_>("shards", (i,), None, Options::default(), None))
+                                    .map_err(|err| err.to_string())
                                     .and_then(|shard| {
                                         // Filter out deleted shards. Deletion in an array in Ethereum means that all fields of the strucs are nulled.
                                         // (It explicitely does not reduce the size of the array. Hence we check each received shard whether
                                         // one of the fields - i.e. the address field - is zero)
-                                        let hash_opt = if shard.0 == Address::zero() {
+                                        let hash_opt: std::option::Option<&str> = if shard.0 == Address::zero() {
                                             None
                                         } else {
                                             // If the shard has not been deleted, we return the ipfs hash of the files
-                                            Some(shard.1)
+                                            Some(&(shard.1))
                                         };
                                         Box::new(ok(hash_opt))
                                     }).and_then(|hash_opt| {
                                         // We fetch the content of the ipfs directory
-                                        match hash_opt {
-                                            None => ok(None),
-                                            Some(hash) => ipfs_client.ls(hash)
-                                        }
+                                        ipfs_client.ls(hash_opt).map_err(|err| err.to_string())
                                     }).and_then(|ls_response| {
                                         // From the ipfs.ls command receive a list of files in the directory. Each of them we download
-                                        let file_get_futures = ls_response.objects.iter().map(|ipfs_file| ipfs_client.get(ipfs_file.hash)).collect();
-                                        join_all(file_get_futures)
-                                    })
+                                        let file_get_streams: Vec<std::boxed::Box<futures::Stream<Error=ipfs_api::response::Error, Item=Chunk>>> = ls_response.objects.iter().map(|ipfs_file| ipfs_client.get(&ipfs_file.hash)).collect();
+                                        ok(file_get_streams)
+                                    });
                     all_file_download_futures.push(fut);
                 }
                                 
                 join_all(all_file_download_futures)
                 //  create tmp directory unique to this proposal
                 //  ... load each file in the individual directories to tmp dir
-            })
+            });
             
             // This shard contains the Iris dataset as an example. The real dataset should be loaded from the SimpleDatabase contract.
             //let ipfs_hashes = vec!["QmV8VSp8S5UfXF4tfGNBSU6VRP6uaGzYA3u5gwxDPXZDiP"]; // TODO Use real ipfs_shards, not this dummy.
