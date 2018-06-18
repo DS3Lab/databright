@@ -10,11 +10,10 @@ extern crate futures;
 use ini::Ini;
 use std::collections::HashMap;
 use web3::contract::Contract;
-use web3::types::{Address, FilterBuilder, BlockNumber, H256, Log};
+use web3::types::{Address, FilterBuilder, BlockNumber, H256};
 use web3::futures::{Future, Stream};
 use std::str::FromStr;
 use futures::future::join_all;
-use futures::stream;
 use ipfs_api::IpfsClient;
 
 mod log_handler;
@@ -143,7 +142,7 @@ fn main() {
             .map_err(|err| err.to_string())
             .and_then(|filter| {
                 let res = filter.logs().map_err(|err| err.to_string()).and_then(|logs| {
-                    let all_log_futures: Vec<Box<Future<Item=(), Error=String>>> = logs.iter().map(|log| log_handler::handle_log(log, true, &topics, &contract, &ipfs_client)).collect();
+                    let all_log_futures: Vec<Box<Future<Item=(), Error=String>>> = logs.iter().map(|log| log_handler::handle_log(log, true, &topics, &contract, &ipfs_client, &web3)).collect();
                     join_all(all_log_futures)
                 });
                 res
@@ -173,7 +172,7 @@ fn main() {
             .then(|sub| {
                 sub.unwrap().for_each(|log| {
                     info!("Subscribed log: {:?}", log);
-                    log_handler::handle_log(&log, false, &topics, &contract, &ipfs_client);
+                    log_handler::handle_log(&log, false, &topics, &contract, &ipfs_client, &web3);
                     Ok(())
                 })
             })

@@ -5,11 +5,12 @@ extern crate futures;
 
 use std::collections::HashMap;
 use self::byteorder::{ByteOrder, BigEndian};
-use web3::types::{Address, H256, Bytes};
-use web3::contract::{Options, Contract};
+use web3::Web3;
 use web3::transports::WebSocket;
+use web3::types::{Address, H256};
+use web3::contract::{Options, Contract};
 use web3::futures::Future;
-use futures::future::ok;
+use futures::future::{ok, join_all};
 use ipfs_api::IpfsClient;
 use std::str;
 
@@ -25,7 +26,8 @@ pub fn handle_log(log: &web3::types::Log,
                   replayed_event: bool,
                   topics: &HashMap<(&str, String), H256>,
                   dba_contract: &Contract<WebSocket>,
-                  ipfs_client: &IpfsClient) -> Box<Future<Item=(), Error=String>> {
+                  ipfs_client: &IpfsClient,
+                  web3: &Web3<WebSocket>) -> Box<Future<Item=(), Error=String>> {
     info!("Handling log: {:?}", log.topics[0]);
     
     if log.topics[0] == *topics.get(&("DatabaseAssociation", "ProposalAdded".into())).unwrap() {
@@ -45,12 +47,42 @@ pub fn handle_log(log: &web3::types::Log,
         if state == 2 { // State == 2: This is a shard add proposal
             // Extract IPFS hashes from web3
             let propID = propadded_deserializer.get_u64("proposalID");
-            //: web3::contract::QueryResult<Vec<String>, _>
-            let prop_result_ftr = dba_contract.query::<Vec<String>, _,_,_>("proposals", (propID,), None, Options::default(), None);
-            let printed_prop_res = prop_result_ftr.and_then(|res| {error!("debug output{:?}", res); ok(()) });
-            return Box::new(printed_prop_res.map_err(|err| err.to_string()));
-            //let res: Future<Item=Bytes, Error=()> = prop_result_ftr;
-            //let return_future = prop_result_ftr.and_then(|res| {debug!("received {:?}", res);})
+            let proposal_result_future = dba_contract.query::<(Address, u64, String, u64, bool, bool, u64, Vec<u8>, String, u64, Address, u64), _,_,_>("proposals", (propID,), None, Options::default(), None);
+            let final_future = proposal_result_future.and_then(|proposal| {
+                let contract_address = proposal.0;
+                
+                let db_contract = Contract::from_json(
+                    web3.eth(),
+                    contract_address,
+                    include_bytes!("../../marketplaces/build/SimpleDatabase.abi"),
+                ).unwrap();
+
+                ok(db_contract).join(db_contract.query::<u64, _,_,_>("getShardArrayLength", (), None, Options::default(), None))
+            }).and_then(|(db_contract, arrlen)| {
+                //  Create range from 0 to excl. arrlen
+                let all_shards_futures: Box<Future<Item=Option<String>, Error=String>> = (0..arrlen).map(|i| ok(i).and_then(|i| db_contract.query::<(Address, String, u64, u64), _,_,_>("shards", (i,), None, Options::default(), None))
+                                                                  .and_then(|shard| {
+                                                                      let hash_opt = if shard.0 == Address::zero() {
+                                                                          None
+                                                                      } else 
+                                                                      {
+                                                                          Some(shard.1)
+                                                                      };
+                                                                      Box::new(ok(hash_opt))
+                                                                  })
+                ).collect().map_err(|err| err.to_string());
+                
+                join_all(all_shards_futures)
+                //  map to futures:
+                //      future should query shard
+                //      and then check if valid
+                //      and then return ipfs hash
+                //  join all futures
+                //  now we have all ipfs hashes
+                //  request all hashes using ipfs.ls
+                //  create tmp directory unique to this proposal
+                //  ... load each file in the individual directories to tmp dir
+            });
             // TODO Execute query, get database address from proposal, fetch shards from datase, fetch IPFS hashes
 
             
@@ -60,7 +92,7 @@ pub fn handle_log(log: &web3::types::Log,
             //let ls_request_futures = ipfs_hashes_prefixed.map(|hash| ipfs_client.ls(hash));    
             // Load data from IPFS (put it in a temp dir)
             // Load into matrix (using database specific adapter)
-
+            return Box::new(final_future.and_then(|res| ok(())).map_err(|err| err.to_string()));
         }
         
     } else {
