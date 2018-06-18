@@ -27,7 +27,7 @@ pub fn handle_log(log: &web3::types::Log,
                   topics: &HashMap<(&str, String), H256>,
                   dba_contract: &Contract<WebSocket>,
                   ipfs_client: &IpfsClient,
-                  web3: &Web3<WebSocket>) -> Box<Future<Item=(), Error=String>> {
+                  web3: & Web3<WebSocket>) -> Box<Future<Item=(), Error=String>> {
     info!("Handling log: {:?}", log.topics[0]);
     
     if log.topics[0] == *topics.get(&("DatabaseAssociation", "ProposalAdded".into())).unwrap() {
@@ -45,10 +45,12 @@ pub fn handle_log(log: &web3::types::Log,
         let state = propadded_deserializer.get_u64("state");
         debug!("Proposal has state {}", state);
         if state == 2 { // State == 2: This is a shard add proposal
-            // Extract IPFS hashes from web3
+            
+            // The ProposalAdded log contains the proposalID. We use this to load the proposal from Ethereum.
             let propID = propadded_deserializer.get_u64("proposalID");
             let proposal_result_future = dba_contract.query::<(Address, u64, String, u64, bool, bool, u64, Vec<u8>, String, u64, Address, u64), _,_,_>("proposals", (propID,), None, Options::default(), None);
             let final_future = proposal_result_future.and_then(|proposal| {
+                // The first field in the proposal struct is the address of the SimpleDatabase contract affected by the proposal
                 let contract_address = proposal.0;
                 
                 let db_contract = Contract::from_json(
@@ -57,38 +59,44 @@ pub fn handle_log(log: &web3::types::Log,
                     include_bytes!("../../marketplaces/build/SimpleDatabase.abi"),
                 ).unwrap();
 
+                // To get all files from IPFS, we first need to fetch all shards from Ethereum
+                // To loop through all shards in the array, the array length is needed. 
                 ok(db_contract).join(db_contract.query::<u64, _,_,_>("getShardArrayLength", (), None, Options::default(), None))
             }).and_then(|(db_contract, arrlen)| {
-                //  Create range from 0 to excl. arrlen
-                let mut vec = Vec::new();
+
+                let mut all_file_download_futures = Vec::new();
                 for i in 0..arrlen {
+                    // Loop through the array and fetch each shard individually
                     let fut = ok(i).and_then(|i| db_contract.query::<(Address, String, u64, u64), _,_,_>("shards", (i,), None, Options::default(), None))
                                     .and_then(|shard| {
+                                        // Filter out deleted shards. Deletion in an array in Ethereum means that all fields of the strucs are nulled.
+                                        // (It explicitely does not reduce the size of the array. Hence we check each received shard whether
+                                        // one of the fields - i.e. the address field - is zero)
                                         let hash_opt = if shard.0 == Address::zero() {
                                             None
-                                        } else 
-                                        {
+                                        } else {
+                                            // If the shard has not been deleted, we return the ipfs hash of the files
                                             Some(shard.1)
                                         };
                                         Box::new(ok(hash_opt))
-                                    });
-                    vec.push(fut);
+                                    }).and_then(|hash_opt| {
+                                        // We fetch the content of the ipfs directory
+                                        match hash_opt {
+                                            None => ok(None),
+                                            Some(hash) => ipfs_client.ls(hash)
+                                        }
+                                    }).and_then(|ls_response| {
+                                        // From the ipfs.ls command receive a list of files in the directory. Each of them we download
+                                        let file_get_futures = ls_response.objects.iter().map(|ipfs_file| ipfs_client.get(ipfs_file.hash)).collect();
+                                        join_all(file_get_futures)
+                                    })
+                    all_file_download_futures.push(fut);
                 }
-                //: Box<Future<Item=Option<String>, Error=String>>
                                 
-                join_all(vec)
-                //  map to futures:
-                //      future should query shard
-                //      and then check if valid
-                //      and then return ipfs hash
-                //  join all futures
-                //  now we have all ipfs hashes
-                //  request all hashes using ipfs.ls
+                join_all(all_file_download_futures)
                 //  create tmp directory unique to this proposal
                 //  ... load each file in the individual directories to tmp dir
-            });
-            // TODO Execute query, get database address from proposal, fetch shards from datase, fetch IPFS hashes
-
+            })
             
             // This shard contains the Iris dataset as an example. The real dataset should be loaded from the SimpleDatabase contract.
             //let ipfs_hashes = vec!["QmV8VSp8S5UfXF4tfGNBSU6VRP6uaGzYA3u5gwxDPXZDiP"]; // TODO Use real ipfs_shards, not this dummy.
