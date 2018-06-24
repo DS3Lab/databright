@@ -13,7 +13,7 @@ use web3::contract::Contract;
 use web3::types::{Address, FilterBuilder, BlockNumber, H256};
 use web3::futures::{Future, Stream};
 use std::str::FromStr;
-use futures::future::join_all;
+use futures::future::{join_all, ok};
 use ipfs_api::IpfsClient;
 
 mod log_handler;
@@ -137,17 +137,17 @@ fn main() {
             )
             .build();
 
-        let event_future = web3.eth_filter()
+        let web3_future = ok(&web3);
+        let ipfs_client_future = ok(&ipfs_client);
+        let log_future = web3.eth_filter()
             .create_logs_filter(filter)
             .map_err(|err| err.to_string())
-            .and_then(|filter| {
-                let res = filter.logs().map_err(|err| err.to_string()).and_then(|logs| {
-                    let all_log_futures: Vec<Box<Future<Item=(), Error=String>>> = logs.iter().map(|log| log_handler::handle_log(log, true, &topics, &contract, &ipfs_client, &web3)).collect();
-                    join_all(all_log_futures)
-                });
-                res
-            });
-            
+            .and_then(|filter| filter.logs().map_err(|err| err.to_string()));
+
+        let event_future = log_future.join3(web3_future, ipfs_client_future).and_then(|(logs, web3, ipfs_client)| {
+            let all_log_futures: Vec<Box<Future<Item=(), Error=String>>> = logs.iter().map(|log| log_handler::handle_log(log, true, &topics, &contract, &ipfs_client, &web3)).collect();
+            join_all(all_log_futures)
+        });
 
         let result = event_loop.run(event_future);
         println!("{:?}", result);

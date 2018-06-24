@@ -12,6 +12,7 @@ use web3::types::{Address, H256};
 use web3::contract::{Options, Contract};
 use web3::futures::Future;
 use futures::future::{ok, join_all};
+use futures::Stream;
 use ipfs_api::IpfsClient;
 use self::hyper::Chunk;
 use ipfs_api;
@@ -26,12 +27,12 @@ macro_rules! hashmap {
     }}
 }
 
-pub fn handle_log(log: &web3::types::Log,
+pub fn handle_log<'a>(log: &web3::types::Log,
                   replayed_event: bool,
                   topics: &HashMap<(&str, String), H256>,
                   dba_contract: &Contract<WebSocket>,
-                  ipfs_client: &IpfsClient,
-                  web3: & Web3<WebSocket>) -> Box<Future<Item=(), Error=String>> {
+                  ipfs_client: &'a IpfsClient,
+                  web3: &'a Web3<WebSocket>) -> Box<Future<Item=(), Error=String> + 'a> {
     info!("Handling log: {:?}", log.topics[0]);
     
     if log.topics[0] == *topics.get(&("DatabaseAssociation", "ProposalAdded".into())).unwrap() {
@@ -53,7 +54,7 @@ pub fn handle_log(log: &web3::types::Log,
             // The ProposalAdded log contains the proposalID. We use this to load the proposal from Ethereum.
             let propID = propadded_deserializer.get_u64("proposalID");
             let proposal_result_future = dba_contract.query::<(Address, u64, String, u64, bool, bool, u64, Vec<u8>, String, u64, Address, u64), _,_,_>("proposals", (propID,), None, Options::default(), None);
-            let final_future = proposal_result_future.and_then(|proposal| {
+            let dbcontract_arrlen_future = proposal_result_future.join(ok(web3)).and_then(|(proposal, web3)| {
                 // The first field in the proposal struct is the address of the SimpleDatabase contract affected by the proposal
                 let contract_address = proposal.0;
                 
@@ -64,34 +65,31 @@ pub fn handle_log(log: &web3::types::Log,
                 ).unwrap();
 
                 // To get all files from IPFS, we first need to fetch all shards from Ethereum
-                // To loop through all shards in the array, the array length is needed. 
-                ok(db_contract).join(db_contract.query::<u64, _,_,_>("getShardArrayLength", (), None, Options::default(), None))
-            }).map_err(|err| err.to_string())
-            .and_then(|(db_contract, arrlen)| {
+                // To loop through all shards in the array, the array length is needed.
+                let arrlen_query = db_contract.query::<u64, _,_,_>("getShardArrayLength", (), None, Options::default(), None);
+                ok(db_contract).join(arrlen_query)
+            }).map_err(|err| err.to_string());
+
+            let carry_fut = ok(web3).join(ok(ipfs_client));
+            let final_future = dbcontract_arrlen_future.join(carry_fut)
+            .and_then(|((db_contract, arrlen), (web3, ipfs_client))| {
 
                 let mut all_file_download_futures = Vec::new();
                 for i in 0..arrlen {
                     // Loop through the array and fetch each shard individually
-                    let fut = ok(i).and_then(|i| db_contract.query::<(Address, String, u64, u64), _,_,_>("shards", (i,), None, Options::default(), None))
-                                    .map_err(|err| err.to_string())
-                                    .and_then(|shard| {
-                                        // Filter out deleted shards. Deletion in an array in Ethereum means that all fields of the strucs are nulled.
-                                        // (It explicitely does not reduce the size of the array. Hence we check each received shard whether
-                                        // one of the fields - i.e. the address field - is zero)
-                                        let hash_opt: std::option::Option<&str> = if shard.0 == Address::zero() {
-                                            None
-                                        } else {
-                                            // If the shard has not been deleted, we return the ipfs hash of the files
-                                            Some(&(shard.1))
-                                        };
-                                        Box::new(ok(hash_opt))
-                                    }).and_then(|hash_opt| {
-                                        // We fetch the content of the ipfs directory
-                                        ipfs_client.ls(hash_opt).map_err(|err| err.to_string())
-                                    }).and_then(|ls_response| {
+                    let ipfs_fut = ok(ipfs_client);
+                    let shard_fut = db_contract.query::<(Address, String, u64, u64), _,_,_>("shards", (i,), None, Options::default(), None)
+                                    .map_err(|err| err.to_string());
+                    let dir_list_future = shard_fut.join(ipfs_fut).and_then(|(shard, ipfs_client)| {
+                                        ipfs_client.ls(Some(&shard.1)).map_err(|err| err.to_string())
+                                    });
+                    
+                    let ipfs_fut2 = ok(ipfs_client);
+                    let fut = dir_list_future.join(ipfs_fut2).and_then(|(ls_response, ipfs_client)| {
                                         // From the ipfs.ls command receive a list of files in the directory. Each of them we download
-                                        let file_get_streams: Vec<std::boxed::Box<futures::Stream<Error=ipfs_api::response::Error, Item=Chunk>>> = ls_response.objects.iter().map(|ipfs_file| ipfs_client.get(&ipfs_file.hash)).collect();
-                                        ok(file_get_streams)
+                                        //: Vec<std::boxed::Box<futures::Stream<Error=ipfs_api::response::Error, Item=Chunk>>> 
+                                        let file_get_futures: Vec<futures::stream::Concat2<std::boxed::Box<futures::Stream<Error=ipfs_api::response::Error, Item=hyper::Chunk>>>> = ls_response.objects.iter().map(|ipfs_file| ipfs_client.get(&ipfs_file.hash).concat2()).collect();
+                                        join_all(file_get_futures)
                                     });
                     all_file_download_futures.push(fut);
                 }
