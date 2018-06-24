@@ -14,6 +14,7 @@ use web3::futures::Future;
 use futures::future::{ok, join_all};
 use futures::Stream;
 use ipfs_api::IpfsClient;
+use std::path::Path;
 use self::hyper::Chunk;
 use ipfs_api;
 use std::str;
@@ -32,7 +33,8 @@ pub fn handle_log<'a>(log: &web3::types::Log,
                   topics: &HashMap<(&str, String), H256>,
                   dba_contract: &Contract<WebSocket>,
                   ipfs_client: &'a IpfsClient,
-                  web3: &'a Web3<WebSocket>) -> Box<Future<Item=(), Error=String> + 'a> {
+                  web3: &'a Web3<WebSocket>,
+                  tmp_folder_location: &str) -> Box<Future<Item=(), Error=String> + 'a> {
     info!("Handling log: {:?}", log.topics[0]);
     
     if log.topics[0] == *topics.get(&("DatabaseAssociation", "ProposalAdded".into())).unwrap() {
@@ -64,15 +66,17 @@ pub fn handle_log<'a>(log: &web3::types::Log,
                     include_bytes!("../../marketplaces/build/SimpleDatabase.abi"),
                 ).unwrap();
 
+
+                let database_local_folder = Path::new(tmp_folder_location).join(contract_address.to_string());
                 // To get all files from IPFS, we first need to fetch all shards from Ethereum
                 // To loop through all shards in the array, the array length is needed.
                 let arrlen_query = db_contract.query::<u64, _,_,_>("getShardArrayLength", (), None, Options::default(), None);
-                ok(db_contract).join(arrlen_query)
+                ok((db_contract, database_local_folder)).join(arrlen_query)
             }).map_err(|err| err.to_string());
 
             let carry_fut = ok(web3).join(ok(ipfs_client));
             let final_future = dbcontract_arrlen_future.join(carry_fut)
-            .and_then(|((db_contract, arrlen), (web3, ipfs_client))| {
+            .and_then(|(((db_contract, database_local_folder), arrlen), (web3, ipfs_client))| {
 
                 let mut all_file_download_futures = Vec::new();
                 for i in 0..arrlen {

@@ -13,6 +13,7 @@ use web3::contract::Contract;
 use web3::types::{Address, FilterBuilder, BlockNumber, H256};
 use web3::futures::{Future, Stream};
 use std::str::FromStr;
+use std::fs::remove_dir_all;
 use futures::future::{join_all, ok};
 use ipfs_api::IpfsClient;
 
@@ -55,6 +56,16 @@ fn main() {
     let mut ipfs_core = tokio_core::reactor::Core::new().unwrap();
     let ipfs_client = IpfsClient::new(&ipfs_core.handle(), ipfs_node_ip, ipfs_node_port.parse::<u16>().unwrap()).unwrap();
 
+    let localfolders_section = conf.section(Some("LocalFolders".to_owned())).unwrap();
+    let tmp_folder_location = localfolders_section.get("temp_data_storage_path").unwrap();
+    let reset_local_data_storage = {
+        let subscribe_string = localfolders_section.get("reset_local_data_storage").unwrap();
+        match subscribe_string.parse::<bool>() {
+            Ok(b) => b,
+            Err(_) => {error!("Couldn't parse reset_local_data_storage from configuration. Not reseting local folder.."); false },
+        }
+    };
+
     // Populate topic hashmap
     info!("Loading topic hashes from ../marketplaces/build/*.topic files..");
     let mut topics: HashMap<(&str, String), H256> = HashMap::new();
@@ -73,6 +84,11 @@ fn main() {
         }
     }
 
+    // Optionally we delete all previously downloaded dataset shards.
+    // They will be re-downloaded when handling the logs
+    if reset_local_data_storage {
+        remove_dir_all(tmp_folder_location);
+    }
 
     // Connect to ethereum node
     info!("Connecting to ethereum node at {}", ws_url);
@@ -145,7 +161,7 @@ fn main() {
             .and_then(|filter| filter.logs().map_err(|err| err.to_string()));
 
         let event_future = log_future.join3(web3_future, ipfs_client_future).and_then(|(logs, web3, ipfs_client)| {
-            let all_log_futures: Vec<Box<Future<Item=(), Error=String>>> = logs.iter().map(|log| log_handler::handle_log(log, true, &topics, &contract, &ipfs_client, &web3)).collect();
+            let all_log_futures: Vec<Box<Future<Item=(), Error=String>>> = logs.iter().map(|log| log_handler::handle_log(log, true, &topics, &contract, &ipfs_client, &web3, &tmp_folder_location)).collect();
             join_all(all_log_futures)
         });
 
@@ -172,7 +188,7 @@ fn main() {
             .then(|sub| {
                 sub.unwrap().for_each(|log| {
                     info!("Subscribed log: {:?}", log);
-                    log_handler::handle_log(&log, false, &topics, &contract, &ipfs_client, &web3);
+                    log_handler::handle_log(&log, false, &topics, &contract, &ipfs_client, &web3, tmp_folder_location);
                     Ok(())
                 })
             })
