@@ -35,6 +35,7 @@ pub fn handle_log<'a>(log: &web3::types::Log,
                   ipfs_client: &'a IpfsClient,
                   web3: &'a Web3<WebSocket>,
                   tmp_folder_location: &str) -> Box<Future<Item=(), Error=String> + 'a> {
+
     info!("Handling log: {:?}", log.topics[0]);
     
     if log.topics[0] == *topics.get(&("DatabaseAssociation", "ProposalAdded".into())).unwrap() {
@@ -65,7 +66,6 @@ pub fn handle_log<'a>(log: &web3::types::Log,
                     contract_address,
                     include_bytes!("../../marketplaces/build/SimpleDatabase.abi"),
                 ).unwrap();
-
 
                 let database_local_folder = Path::new(tmp_folder_location).join(contract_address.to_string());
                 // To get all files from IPFS, we first need to fetch all shards from Ethereum

@@ -189,6 +189,7 @@ fn main() {
                 sub.unwrap().for_each(|log| {
                     info!("Subscribed log: {:?}", log);
                     log_handler::handle_log(&log, false, &topics, &contract, &ipfs_client, &web3, tmp_folder_location);
+
                     Ok(())
                 })
             })
