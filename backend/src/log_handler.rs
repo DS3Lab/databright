@@ -34,7 +34,7 @@ pub fn handle_log<'a>(log: &web3::types::Log,
                   dba_contract: &Contract<WebSocket>,
                   ipfs_client: &'a IpfsClient,
                   web3: &'a Web3<WebSocket>,
-                  tmp_folder_location: &str) -> Box<Future<Item=(), Error=String> + 'a> {
+                  tmp_folder_location: &'a str) -> Box<Future<Item=(), Error=String> + 'a> {
 
     info!("Handling log: {:?}", log.topics[0]);
     
@@ -57,7 +57,7 @@ pub fn handle_log<'a>(log: &web3::types::Log,
             // The ProposalAdded log contains the proposalID. We use this to load the proposal from Ethereum.
             let propID = propadded_deserializer.get_u64("proposalID");
             let proposal_result_future = dba_contract.query::<(Address, u64, String, u64, bool, bool, u64, Vec<u8>, String, u64, Address, u64), _,_,_>("proposals", (propID,), None, Options::default(), None);
-            let dbcontract_arrlen_future = proposal_result_future.join(ok(web3)).and_then(|(proposal, web3)| {
+            let dbcontract_arrlen_future = proposal_result_future.join(ok(web3)).and_then(move |(proposal, web3)| {
                 // The first field in the proposal struct is the address of the SimpleDatabase contract affected by the proposal
                 let contract_address = proposal.0;
                 
@@ -84,16 +84,20 @@ pub fn handle_log<'a>(log: &web3::types::Log,
                     let ipfs_fut = ok(ipfs_client);
                     let shard_fut = db_contract.query::<(Address, String, u64, u64), _,_,_>("shards", (i,), None, Options::default(), None)
                                     .map_err(|err| err.to_string());
-                    let dir_list_future = shard_fut.join(ipfs_fut).and_then(|(shard, ipfs_client)| {
+                    let dir_list_future = shard_fut.join(ipfs_fut)
+                                          .map_err(|err| err.to_string())
+                                          .and_then(|(shard, ipfs_client)| {
                                         ipfs_client.ls(Some(&shard.1)).map_err(|err| err.to_string())
                                     });
                     
                     let ipfs_fut2 = ok(ipfs_client);
-                    let fut = dir_list_future.join(ipfs_fut2).and_then(|(ls_response, ipfs_client)| {
+                    let fut = dir_list_future.join(ipfs_fut2)
+                                        .map_err(|err| err.to_string())
+                                        .and_then(|(ls_response, ipfs_client)| {
                                         // From the ipfs.ls command receive a list of files in the directory. Each of them we download
                                         //: Vec<std::boxed::Box<futures::Stream<Error=ipfs_api::response::Error, Item=Chunk>>> 
                                         let file_get_futures: Vec<futures::stream::Concat2<std::boxed::Box<futures::Stream<Error=ipfs_api::response::Error, Item=hyper::Chunk>>>> = ls_response.objects.iter().map(|ipfs_file| ipfs_client.get(&ipfs_file.hash).concat2()).collect();
-                                        join_all(file_get_futures)
+                                        join_all(file_get_futures).map_err(|err| err.to_string())
                                     });
                     all_file_download_futures.push(fut);
                 }
