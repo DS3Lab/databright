@@ -41,13 +41,7 @@ fn main() {
             Err(_) => {error!("Couldn't parse replay_past_events from configuration. Skipping events from the past.."); false },
         }
     };
-    let subscribe_future_events = {
-        let subscribe_string = web3_section.get("subscribe_future_events").unwrap();
-        match subscribe_string.parse::<bool>() {
-            Ok(b) => b,
-            Err(_) => {error!("Couldn't parse subscribe_future_events from configuration. Not subscribing to future events.."); false },
-        }
-    };
+
     let last_processed_block_id = web3_section.get("last_processed_block_id").unwrap();
 
     let ipfs_section = conf.section(Some("Ipfs".to_owned())).unwrap();
@@ -168,33 +162,5 @@ fn main() {
         let result = event_loop.run(event_future);
         println!("{:?}", result);
         info!("Finished replay of events");
-    }
-
-    if subscribe_future_events {
-        // Subscribe to current topics and handle them as they happen
-        info!("Subscribing to current events..");
-        let filter = FilterBuilder::default()
-            .address(vec![contract.address()])
-            .topics(
-                desired_topics,
-                None,
-                None,
-                None,
-            )
-            .build();
-
-        let subscription_future = web3.eth_subscribe()
-            .subscribe_logs(filter)
-            .then(|sub| {
-                sub.unwrap().for_each(|log| {
-                    info!("Subscribed log: {:?}", log);
-                    log_handler::handle_log(&log, false, &topics, &contract, &ipfs_client, &web3, tmp_folder_location);
-
-                    Ok(())
-                })
-            })
-            .map_err(|_| ());
-
-        event_loop.run(subscription_future);
     }
 }
