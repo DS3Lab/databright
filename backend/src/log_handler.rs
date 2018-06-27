@@ -32,19 +32,16 @@ macro_rules! hashmap {
 
 pub fn handle_log<'a>(
     log: &web3::types::Log,
-    replayed_event: bool,
     topics: &HashMap<(&str, String), H256>,
     dba_contract: &Contract<WebSocket>,
     ipfs_client: &'a IpfsClient,
     web3: &'a Web3<WebSocket>,
     tmp_folder_location: &'a str,
-) -> Box<Future<Item = (), Error = String> + 'a> {
+    event_loop: &mut tokio_core::reactor::Core
+ ) {
     info!("Handling log: {:?}", log.topics[0]);
 
-    if log.topics[0]
-        == *topics
-            .get(&("DatabaseAssociation", "ProposalAdded".into()))
-            .unwrap()
+    if log.topics[0] == *topics.get(&("DatabaseAssociation", "ProposalAdded".into())).unwrap()
     {
         // Initialize event deserializer
         let order = vec![
@@ -68,54 +65,57 @@ pub fn handle_log<'a>(
         let propadded_deserializer = LogdataDeserializer::new(&log.data.0, fields, order);
         let state = propadded_deserializer.get_u64("state");
         debug!("Proposal has state {}", state);
+        
         if state == 2 {
             // State == 2: This is a shard add proposal
 
             // The ProposalAdded log contains the proposalID. We use this to load the proposal from Ethereum.
             let propID = propadded_deserializer.get_u64("proposalID");
-            let proposal_result_future =
-                dba_contract.query::<(
-                    Address,
-                    u64,
-                    String,
-                    u64,
-                    bool,
-                    bool,
-                    u64,
-                    Vec<u8>,
-                    String,
-                    u64,
-                    Address,
-                    u64,
-                ), _, _, _>("proposals", (propID,), None, Options::default(), None);
-            let dbcontract_arrlen_future = proposal_result_future
-                .join(ok(web3))
-                .and_then(move |(proposal, web3)| {
-                    // The first field in the proposal struct is the address of the SimpleDatabase contract affected by the proposal
-                    let contract_address = proposal.0;
+            let proposal_future =
+                dba_contract.query::<(Address, u64, String, u64, bool, bool, u64, Vec<u8>, String, u64, Address, u64,), _, _, _>
+                                    ("proposals", (propID,), None, Options::default(), None);
+            let proposal = event_loop.run(proposal_future).unwrap();
+            
+            // The first field in the proposal struct is the address of the SimpleDatabase contract affected by the proposal
+            let contract_address = proposal.0;
 
-                    let db_contract = Contract::from_json(
-                        web3.eth(),
-                        contract_address,
-                        include_bytes!("../../marketplaces/build/SimpleDatabase.abi"),
-                    ).unwrap();
+            let db_contract = Contract::from_json(
+                web3.eth(),
+                contract_address,
+                include_bytes!("../../marketplaces/build/SimpleDatabase.abi"),
+            ).unwrap();
 
-                    let database_local_folder =
-                        Path::new(tmp_folder_location).join(contract_address.to_string());
-                    // To get all files from IPFS, we first need to fetch all shards from Ethereum
-                    // To loop through all shards in the array, the array length is needed.
-                    let arrlen_query = db_contract.query::<u64, _, _, _>(
-                        "getShardArrayLength",
-                        (),
-                        None,
-                        Options::default(),
-                        None,
-                    );
-                    ok((db_contract, database_local_folder)).join(arrlen_query)
-                })
-                .map_err(|err| err.to_string());
+            let database_local_folder =
+                Path::new(tmp_folder_location).join(contract_address.to_string());
+            // To get all files from IPFS, we first need to fetch all shards from Ethereum
+            // To loop through all shards in the array, the array length is needed.
+            let arrlen_future = db_contract.query::<u64, _, _, _>(
+                "getShardArrayLength",
+                (),
+                None,
+                Options::default(),
+                None,
+            );
+            let arrlen = event_loop.run(arrlen_future).unwrap();
+            
+            //let mut all_file_download_futures = Vec::new();
 
-            let carry_fut = ok(web3).join(ok(ipfs_client));
+            for i in 0..arrlen {
+                let shard_local_folder = database_local_folder.join(format!("shard_{}", i));
+                if !shard_local_folder.exists() {
+                    // The shard folder doesn't exist, let's create it
+                    create_dir_all(shard_local_folder);
+                    let shard_future = db_contract.query::<(Address, String, u64, u64), _, _, _>(
+                                        "shards", (i,), None, Options::default(), None,);
+                    
+                }
+
+            }
+        }
+    }
+ }
+            
+/*
             let final_future = dbcontract_arrlen_future.join(carry_fut).and_then(
                 |(((db_contract, database_local_folder), arrlen), (web3, ipfs_client))| {
                     let mut all_file_download_futures = Vec::new();
@@ -193,7 +193,8 @@ pub fn handle_log<'a>(
     }
 
     return Box::new(ok(())); // TODO Return proper value from feature. This is only for debugging!
-}
+}*/
+
 
 pub struct LogdataDeserializer<'a> {
     order: Vec<&'a str>,

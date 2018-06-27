@@ -147,20 +147,15 @@ fn main() {
             )
             .build();
 
-        let web3_future = ok(&web3);
-        let ipfs_client_future = ok(&ipfs_client);
         let log_future = web3.eth_filter()
             .create_logs_filter(filter)
-            .map_err(|err| err.to_string())
-            .and_then(|filter| filter.logs().map_err(|err| err.to_string()));
+            .and_then(|filter| filter.logs());
 
-        let event_future = log_future.join3(web3_future, ipfs_client_future).and_then(|(logs, web3, ipfs_client)| {
-            let all_log_futures: Vec<Box<Future<Item=(), Error=String>>> = logs.iter().map(|log| log_handler::handle_log(log, true, &topics, &contract, &ipfs_client, &web3, &tmp_folder_location)).collect();
-            join_all(all_log_futures)
-        });
 
-        let result = event_loop.run(event_future);
-        println!("{:?}", result);
+        let logs = event_loop.run(log_future).unwrap();
+        for log in logs {
+            log_handler::handle_log(&log, &topics, &contract, &ipfs_client, &web3, &tmp_folder_location, &mut event_loop);
+        }
         info!("Finished replay of events");
     }
 }
