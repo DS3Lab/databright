@@ -12,7 +12,7 @@ use ipfs_api;
 use ipfs_api::IpfsClient;
 use std;
 use std::collections::HashMap;
-use std::fs::{create_dir_all, File};
+use std::fs::{create_dir_all, remove_dir_all, File};
 use std::io::Write;
 use std::path::Path;
 use std::str;
@@ -91,6 +91,10 @@ pub fn handle_log<'a>(
 
             let database_local_folder =
                 Path::new(tmp_folder_location).join(contract_address.to_string());
+
+            // The proposed shard will be fetched into a special folder
+            let new_shard_folder = database_local_folder.join("new_shard");
+            remove_dir_all(new_shard_folder);    
             // To get all files from IPFS, we first need to fetch all shards from Ethereum
             // To loop through all shards in the array, the array length is needed.
             let arrlen_future = db_contract.query::<u64, _, _, _>(
@@ -124,16 +128,25 @@ pub fn handle_log<'a>(
                 if shards_valid[id] {
                     debug!("Listing directory content for shard {} at IPFS address {}", id, &shard.1);
                     let ls_future = ipfs_client.ls(Some(&format!("/ipfs/{}", &shard.1)));
-                    all_ls_futures.push(ls_future.join(ok(id)));
+                    all_ls_futures.push(ls_future.join(ok(Some(id))));
                 }
             }
+            
+            let new_shard_ipfs_hash = propadded_deserializer.get_str("argument");
+            debug!("Manually adding proposed shard '{}' for retrieval from IPFS", new_shard_ipfs_hash);
+            let new_shard_ls_future = ipfs_client.ls(Some(&format!("/ipfs/{}", new_shard_ipfs_hash)));
+            all_ls_futures.push(new_shard_ls_future.join(ok(None)));
+
             debug!("Fetching directory listings from IPFS");
             let ls_results = event_loop.run(join_all(all_ls_futures)).unwrap();
             debug!("Fetched {} directory listings from IPFS", ls_results.len());
 
             let mut all_download_futures = Vec::new();
-            for (ls_res, id) in ls_results.iter() {
-                let shard_local_folder = database_local_folder.join(format!("shard_{}", id));
+            for (ls_res, id_opt) in ls_results.iter() {
+                let shard_local_folder = match id_opt {
+                                            None => database_local_folder.join("new_shard"),
+                                            Some(id) => database_local_folder.join(format!("shard_{}", id))
+                                        };
 
                 for link in ls_res.objects[0].links.iter() {
                     debug!("Getting IPFS file {} from {}", &link.name, &link.hash);
