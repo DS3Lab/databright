@@ -47,8 +47,8 @@ fn main() {
     let ipfs_section = conf.section(Some("Ipfs".to_owned())).unwrap();
     let ipfs_node_ip = ipfs_section.get("node_ip").unwrap();
     let ipfs_node_port = ipfs_section.get("node_port").unwrap();
-    let mut ipfs_core = tokio_core::reactor::Core::new().unwrap();
-    let ipfs_client = IpfsClient::new(&ipfs_core.handle(), ipfs_node_ip, ipfs_node_port.parse::<u16>().unwrap()).unwrap();
+    let mut event_loop = tokio_core::reactor::Core::new().unwrap();
+    let ipfs_client = IpfsClient::new(&event_loop.handle(), ipfs_node_ip, ipfs_node_port.parse::<u16>().unwrap()).unwrap();
 
     let localfolders_section = conf.section(Some("LocalFolders".to_owned())).unwrap();
     let tmp_folder_location = localfolders_section.get("temp_data_storage_path").unwrap();
@@ -86,9 +86,7 @@ fn main() {
 
     // Connect to ethereum node
     info!("Connecting to ethereum node at {}", ws_url);
-    let mut event_loop = tokio_core::reactor::Core::new().unwrap();
-    let handle = event_loop.handle();
-    let transp = web3::transports::WebSocket::with_event_loop(ws_url, &handle).unwrap();
+    let transp = web3::transports::WebSocket::with_event_loop(ws_url, &event_loop.handle()).unwrap();
     let web3 = web3::Web3::new(transp);
 
     // Print accounts and balance to check if websocket connection works

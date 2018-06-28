@@ -37,7 +37,7 @@ pub fn handle_log<'a>(
     ipfs_client: &'a IpfsClient,
     web3: &'a Web3<WebSocket>,
     tmp_folder_location: &'a str,
-    event_loop: &mut tokio_core::reactor::Core
+    event_loop: &mut tokio_core::reactor::Core,
  ) {
     info!("Handling log: {:?}", log.topics[0]);
 
@@ -98,7 +98,7 @@ pub fn handle_log<'a>(
             );
             let arrlen = event_loop.run(arrlen_future).unwrap();
             
-            //let mut all_file_download_futures = Vec::new();
+            let mut all_shard_futures = Vec::new();
 
             for i in 0..arrlen {
                 let shard_local_folder = database_local_folder.join(format!("shard_{}", i));
@@ -107,10 +107,45 @@ pub fn handle_log<'a>(
                     create_dir_all(shard_local_folder);
                     let shard_future = db_contract.query::<(Address, String, u64, u64), _, _, _>(
                                         "shards", (i,), None, Options::default(), None,);
-                    
+                    all_shard_futures.push(shard_future);
                 }
-
             }
+            debug!("Fetching shards from database contract.");
+            let shards = event_loop.run(join_all(all_shard_futures)).unwrap();
+            debug!("Fetched {} shards from database contract.", shards.len());
+
+            let shards_valid: Vec<bool> = shards.iter().map(|shard| shard.0 != Address::zero()).collect();
+            let mut all_ls_futures = Vec::new();
+            for (id, shard) in shards.iter().enumerate() {
+                if shards_valid[id] {
+                    debug!("Listing directory content for shard {} at IPFS address {}", id, &shard.1);
+                    let ls_future = ipfs_client.ls(Some(&format!("/ipfs/{}", &shard.1)));
+                    all_ls_futures.push(ls_future.join(ok(id)));
+                }
+            }
+            debug!("Fetching directory listings from IPFS");
+            let ls_results = event_loop.run(join_all(all_ls_futures)).unwrap();
+            debug!("Fetched {} directory listings from IPFS", ls_results.len());
+
+            let mut all_download_futures = Vec::new();
+            for (ls_res, id) in ls_results.iter() {
+                let shard_local_folder = database_local_folder.join(format!("shard_{}", id));
+
+                for link in ls_res.objects[0].links.iter() {
+                    debug!("Getting IPFS file {} from {}", &link.name, &link.hash);
+                    let get_fut = ipfs_client.get(&link.hash).concat2();
+                    all_download_futures.push(get_fut.join(ok(shard_local_folder.join(&link.name))));
+                }
+            }
+            debug!("Fetching files from IPFS");
+            let all_file_dls = event_loop.run(join_all(all_download_futures)).unwrap();
+            debug!("Fetched {} files from IPFS", all_file_dls.len());
+
+            for (file_res, file_path) in all_file_dls.iter() {
+                let mut file = File::create(file_path).unwrap();
+                file.write_all(&file_res).unwrap();
+            }
+            debug!("Written files to disk");
         }
     }
  }
