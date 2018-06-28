@@ -3,6 +3,7 @@ extern crate futures;
 extern crate hyper;
 extern crate tokio_core;
 extern crate web3;
+extern crate tar;
 
 use self::byteorder::{BigEndian, ByteOrder};
 use self::hyper::Chunk;
@@ -22,6 +23,7 @@ use web3::futures::Future;
 use web3::transports::WebSocket;
 use web3::types::{Address, H256};
 use log_handler::data_loader::data_loader::{DataLoader, CSVLoader};
+use self::tar::Archive;
 
 mod data_loader;
 mod knn_shapley;
@@ -90,7 +92,7 @@ pub fn handle_log<'a>(
             ).unwrap();
 
             let database_local_folder =
-                Path::new(tmp_folder_location).join(contract_address.to_string());
+                Path::new(tmp_folder_location).join(format!("{:?}", contract_address));
 
             // The proposed shard will be fetched into a special folder
             let new_shard_folder = database_local_folder.join("new_shard");
@@ -161,8 +163,13 @@ pub fn handle_log<'a>(
 
             for (file_res, file_path) in all_file_dls.iter() {
                 debug!("Writing file {:?}", file_path);
-                let mut file = File::create(file_path).unwrap();
-                file.write_all(&file_res).unwrap();
+                let file_content = file_res;
+                let mut tar_archive = Archive::new(file_content.as_ref());
+                for archive_file in tar_archive.entries().unwrap() {
+                    archive_file.unwrap().unpack(file_path);
+                    break;
+                }
+                
             }
             debug!("Written shards to disk. Starting knn-shapley approximation...");
 
