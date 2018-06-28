@@ -21,6 +21,10 @@ use web3::contract::{Contract, Options};
 use web3::futures::Future;
 use web3::transports::WebSocket;
 use web3::types::{Address, H256};
+use log_handler::data_loader::data_loader::{DataLoader, CSVLoader};
+
+mod data_loader;
+mod knn_shapley;
 
 macro_rules! hashmap {
     ($( $key: expr => $val: expr ),*) => {{
@@ -82,7 +86,7 @@ pub fn handle_log<'a>(
             let db_contract = Contract::from_json(
                 web3.eth(),
                 contract_address,
-                include_bytes!("../../marketplaces/build/SimpleDatabase.abi"),
+                include_bytes!("../../../marketplaces/build/SimpleDatabase.abi"),
             ).unwrap();
 
             let database_local_folder =
@@ -145,7 +149,23 @@ pub fn handle_log<'a>(
                 let mut file = File::create(file_path).unwrap();
                 file.write_all(&file_res).unwrap();
             }
-            debug!("Written files to disk");
+            debug!("Written shards to disk. Starting knn-shapley approximation...");
+
+            let file_paths = all_file_dls.iter().map(|(_, path)| path.to_str().unwrap()).collect();
+            
+            //TODO Load real file from smart contract and ipfs
+            let dataformat_json_path = Path::new("./lorem_ipsum.json");
+            let ldr = self::data_loader::data_loader::new(dataformat_json_path);
+            let csv_ldr = ldr as CSVLoader;
+            let (features, predictors) = csv_ldr.load_all_samples(file_paths);
+            let X = csv_ldr.vecs_as_matrix(features);
+            let y = csv_ldr.vec_as_vector(predictors);
+
+            let num_splits = 5; //TODO Load from config.ini
+            let cv_shapleys = knn_shapley::knn_shapley::run_shapley_cv(&X, &y, num_splits);
+            println!("{:?}", cv_shapleys);
+            // TODO Sum up shapleys of shards (to get one shapley value per shard)
+            // TODO Write it back to the blockchain
         }
     }
  }

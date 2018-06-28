@@ -6,11 +6,11 @@ extern crate image;
 
 pub mod data_loader {
 
-    use data_loader::rusty_machine::linalg::Matrix;
-    use data_loader::rusty_machine::linalg::Vector;
-    use data_loader::csv;
-    use data_loader::regex::Regex;
-    use data_loader::image;
+    use log_handler::data_loader::rusty_machine::linalg::Matrix;
+    use log_handler::data_loader::rusty_machine::linalg::Vector;
+    use log_handler::data_loader::csv;
+    use log_handler::data_loader::regex::Regex;
+    use log_handler::data_loader::image;
     use std::path::Path;
 
     pub trait DataLoader {
@@ -26,6 +26,17 @@ pub mod data_loader {
 
         fn vec_as_vector(&self, predictors: Vec<Self::Predictor>) -> Vector<Self::Predictor> {
             Vector::new(predictors)
+        }
+    }
+
+    pub fn new(dataformat_json_filepath: &Path) -> CSVLoader {
+        // Default implementation for testing purposes.
+        // TODO: Setup factory: Use the provided JSON file to return
+        // a concrete implementation of the DataLoader trait (instead of the default CSVLoader here)
+        CSVLoader{ 
+            delimiter: b',',
+            predictor_column_index: 4,
+            has_headers: false
         }
     }
 

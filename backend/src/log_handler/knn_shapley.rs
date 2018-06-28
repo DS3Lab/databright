@@ -1,11 +1,11 @@
+extern crate rustlearn;
 extern crate rusty_machine;
 extern crate rulinalg;
 
 pub mod knn_shapley {
-    use knn_shapley::rusty_machine::linalg::Matrix;
-    use knn_shapley::rusty_machine::linalg::Vector;
-    use knn_shapley::rusty_machine::prelude::BaseMatrix;
-    use knn_shapley::rusty_machine::linalg::Metric;
+    use log_handler::knn_shapley::rusty_machine::linalg::{Matrix, Vector, Metric};
+    use log_handler::knn_shapley::rusty_machine::prelude::{BaseMatrix, BaseMatrixMut};
+    use log_handler::knn_shapley::rustlearn::cross_validation::{ShuffleSplit, CrossValidation};
     use std::cmp::min;
 
     fn distance_from_sample(training_features: &Matrix<f64>, test_sample: &Vector<f64>) -> Vec<f64> {
@@ -54,5 +54,27 @@ pub mod knn_shapley {
         let res2: Vec<Vector<f64>> = res1.iter().map(|(idx, dist)| shapleys_from_distances(dist.to_vec(), training_labels, test_labels[*idx], k)).collect();
         let res3 = res2.iter().fold::<Vector<f64>,_>(Vector::new(vec![0.0;training_labels.size()]), |sum_vec, shapleys| sum_vec + shapleys);
         res3
+    }
+
+    pub fn run_shapley_cv(X: &Matrix<f64>, y: &Vector<u32>, num_splits: usize) -> Vec<f64> {
+        
+        let mut split_shapleys = Matrix::zeros(num_splits, X.rows());
+
+        //for (train_idx, test_idx) in ShuffleSplit::new(X.rows(), num_splits, test_percentage) {
+        for (split_index, (train_idx, test_idx)) in CrossValidation::new(X.rows(), num_splits).enumerate() {
+            let X_train = X.select_rows(&train_idx);
+            let y_train = y.select(&train_idx);
+            let X_test = X.select_rows(&test_idx);
+            let y_test = y.select(&test_idx);
+            
+            let shapleys = calculate_knn_shapleys(&X_train, &y_train, &X_test, &y_test, 10).into_vec();
+            
+            let mut row_slice = split_shapleys.get_row_mut(split_index).unwrap();
+            for (i, item) in train_idx.iter().enumerate() {
+                row_slice[*item] = shapleys[i];
+            }
+        }
+        let cv_shapleys: Vec<f64> = split_shapleys.sum_rows().iter().map(|shapley_sum| shapley_sum/((num_splits-1) as f64)).collect();
+        cv_shapleys 
     }
 }
