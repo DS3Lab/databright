@@ -68,10 +68,11 @@ pub mod knn_shapley {
             let y_test = y.select(&test_idx);
             
             let shapleys = calculate_knn_shapleys(&X_train, &y_train, &X_test, &y_test, 10).into_vec();
-            
+            let iteration_sum = shapleys.iter().sum::<f64>();
+            let scaled_shapleys: Vec<f64> = shapleys.iter().map(|shap| shap / iteration_sum).collect();
             let mut row_slice = split_shapleys.get_row_mut(split_index).unwrap();
             for (i, item) in train_idx.iter().enumerate() {
-                row_slice[*item] = shapleys[i];
+                row_slice[*item] = scaled_shapleys[i];
             }
         }
         let cv_shapleys: Vec<f64> = split_shapleys.sum_rows().iter().map(|shapley_sum| shapley_sum/((num_splits-1) as f64)).collect();
