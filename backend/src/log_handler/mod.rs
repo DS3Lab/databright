@@ -94,7 +94,8 @@ pub fn handle_log<'a>(
 
             // The proposed shard will be fetched into a special folder
             let new_shard_folder = database_local_folder.join("new_shard");
-            remove_dir_all(new_shard_folder);    
+            remove_dir_all(&new_shard_folder); 
+            create_dir_all(new_shard_folder);   
             // To get all files from IPFS, we first need to fetch all shards from Ethereum
             // To loop through all shards in the array, the array length is needed.
             let arrlen_future = db_contract.query::<u64, _, _, _>(
@@ -159,6 +160,7 @@ pub fn handle_log<'a>(
             debug!("Fetched {} files from IPFS", all_file_dls.len());
 
             for (file_res, file_path) in all_file_dls.iter() {
+                debug!("Writing file {:?}", file_path);
                 let mut file = File::create(file_path).unwrap();
                 file.write_all(&file_res).unwrap();
             }
