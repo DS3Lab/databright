@@ -1,0 +1,112 @@
+{
+  "$id": "http://example.com/example.json",
+  "type": "object",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "properties": {
+    "data": {
+      "$id": "/properties/data",
+      "type": "object",
+      "properties": {
+        "ipfs_hashes": {
+          "$id": "/properties/data/properties/ipfs_hashes",
+          "type": "array",
+          "items": {
+            "$id": "/properties/data/properties/ipfs_hashes/items",
+            "type": "string",
+            "title": "shard locations on IPFS",
+            "description": "IPFS hash to directory containing the samples.",
+            "default": ""
+          }
+        },
+        "shard_owners": {
+          "$id": "/properties/data/properties/shard_owners",
+          "type": "array",
+          "items": {
+            "$id": "/properties/data/properties/shard_owners/items",
+            "type": "string",
+            "title": "dataset shard owners",
+            "description": "The ethereum account address of the shard owners. Order matters, elements in the array correspond to ipfs_hashes above.",
+            "default": ""
+          }
+        },
+        "predictor_filename_regex": {
+          "$id": "/properties/data/properties/predictor_filename_regex",
+          "type": "string",
+          "title": "Predictor Filename Regex",
+          "description": "Assume the predictor variable is within the filename. This regex extracts it.",
+          "default": ""
+        }
+      }
+    },
+    "model": {
+      "$id": "/properties/model",
+      "type": "object",
+      "properties": {
+        "ipfs_hash": {
+          "$id": "/properties/model/properties/ipfs_hash",
+          "type": "string",
+          "title": "IPFS location of serialized model",
+          "description": "Location of the serialized TensorFlow model to be used for training or inference. This should contain the graph and the parameters.",
+          "default": ""
+        }
+      }
+    },
+    "computation": {
+      "$id": "/properties/computation",
+      "type": "object",
+      "properties": {
+        "task": {
+          "$id": "/properties/computation/properties/task",
+          "type": "string",
+          "title": "Task type",
+          "description": "Indicates whether this is an inference, training or tryrun task",
+          "default": "",
+          "enum": [
+            "inference",
+            "training",
+            "tryrun"
+          ]
+        },
+        "train_num_epochs": {
+          "$id": "/properties/computation/properties/train_num_epochs",
+          "type": "integer",
+          "title": "Number of epochs",
+          "description": "The number of epocs to train. This only concerns training tasks",
+          "default": 0,
+          "examples": [
+            "5"
+          ]
+        },
+        "subset_indices": {
+          "$id": "/properties/computation/properties/subset_indices",
+          "type": "string",
+          "title": "Subset indices",
+          "description": "Indicates if only a subset of datapoints should be used for training or inference. May be empty, a range or a list of sample indices. It assumes samples to be ordered by shard and directory listing.",
+          "default": "",
+          "examples": [
+            "",
+            "20,40,676,1203,6555,11725",
+            "10000-12000,13444-17444"
+          ]
+        },
+        "payer": {
+          "$id": "/properties/computation/properties/payer",
+          "type": "string",
+          "title": "Computation cost payer",
+          "description": "The ethereum account address that pays for the computation.",
+          "default": ""
+        },
+        "gas": {
+          "$id": "/properties/computation/properties/gas",
+          "type": "integer",
+          "title": "Max gas cost",
+          "description": "The maximum amount of gas that this task computation may incur",
+          "default": 0,
+          "examples": [
+            67219756
+          ]
+        }
+      }
+    }
+  }
+}

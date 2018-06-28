@@ -1,0 +1,64 @@
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.2.3/milligram.min.css">
+    <script defer src="https://use.fontawesome.com/releases/v5.0.2/js/all.js"></script>
+  </head>
+  <body class="container" style="padding-top: 3%;">
+    <h2><a href="index.html"><i class="fa fa-database" aria-hidden="true"></i> DataBright</a></h2>
+    <h4>Blockchain-Powered Data Management</h4>
+
+    <hr />
+
+      <div class="row">
+        <div class="column">
+          <label>Association</label>
+          <p><span id="associationAddress">0x</span></p>
+        </div>
+        <div class="column">
+          <label>Your Address</label>
+          <p><span id="accountAddress">0x</span></p>
+        </div>
+      </div>
+
+    <div id="shardProposalCreation", style="display:block;">
+      <h4>Quick Upload</h4>
+
+      <div id="inputProposals">
+        <select class="form-control" id="shardProposal_database" disabled="true" />
+        
+        <input type="text" id="shardProposal_description" maxLength="64" placeholder="Description (optional)" />
+        <input type="text" id="shardProposal_curator" maxLength="64" placeholder="Curator (optional)" />
+        <input id="shardProposal_files" name="shardProposal_files[]" type="file" class="file" multiple data-show-upload="false" data-show-caption="true" data-msg-placeholder="Select {files} for upload...">
+      </div>
+
+      <button id="addShardProposal">Upload data</button>
+      <hr />
+    </div>
+    <div id="shardProposalSucceeded", style="display:none;">
+      <h4>Quick Upload</h4>
+      <h5>Data has been uploaded.</h5>
+      <p> Your Ethereum wallet mnemonic is:
+      <p><b><font face="courier new">front infant carpet alcohol coral power stone release puzzle lottery foster front</font></b>
+      <p>Please write this down or print it. The reward for your data contribution will be automatically calculated and then be credit to your Ethereum wallet.
+      <p><button id="uploadMore">Upload more</button>
+      <hr />
+    </div>
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.4.5/css/fileinput.min.css" media="all" rel="stylesheet" type="text/css" />
+    <script src="js/jquery-3.3.1.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <!-- loading the minified version -->
+    <script src="https://unpkg.com/ipfs-api/dist/index.js"></script>
+    <!-- deep learn -->
+    <script src="https://unpkg.com/deeplearn"></script>
+    <script src="js/bundle.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.4.5/js/fileinput.min.js"></script>
+    <script src="js/web3.min.js"></script>
+    <script src="js/truffle-contract.js"></script>
+    <script src="js/date.format.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/quickupload.js"></script>
+    </body>
+  </html>

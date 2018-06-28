@@ -1,1 +1,0 @@
-# DataBright data market

@@ -1,0 +1,231 @@
+<html>
+  <head>
+    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/milligram/1.2.3/milligram.min.css">
+    <script defer src="https://use.fontawesome.com/releases/v5.0.2/js/all.js"></script>
+  </head>
+  <body class="container" style="padding-top: 3%;">
+    <h2><a href="index.html"><i class="fa fa-database" aria-hidden="true"></i> DataBright</a></h2>
+    <h4>Blockchain-Powered Data Management</h4>
+
+    <hr />
+
+      <div class="row">
+        <div class="column">
+          <label>Association</label>
+          <p><span id="associationAddress">0x</span></p>
+        </div>
+        <div class="column">
+          <label>Your Address</label>
+          <p><span id="accountAddress">0x</span></p>
+        </div>
+        <div class="column">
+          <label>Balance</label>
+          <p><span id="accountBalance">0</span> Curator Token</p>
+        </div>
+      </div>
+
+    <div id="shardProposalCreation", style="display:none;">
+      <h4>Propose New Shard</h4>
+
+      <div id="inputProposals">
+        <select class="form-control" id="shardProposal_database" />
+        
+        <input type="text" id="shardProposal_description" maxLength="64" placeholder="Description" />
+        <input type="text" id="shardProposal_curator" maxLength="64" placeholder="Curator" />
+        <input type="number" id="shardProposal_requestedtokens" min="0" placeholder="Requested Tokens" />
+        <input id="shardProposal_files" name="shardProposal_files[]" type="file" class="file" multiple data-show-upload="false" data-show-caption="true" data-msg-placeholder="Select {files} for upload...">
+      </div>
+
+      <button id="addShardProposal">Add Proposal</button>
+      
+      <button class="goToProposals">View Proposals</button>
+      <hr />
+    </div>
+    <div id="databaseProposalCreation", style="display:none;">
+      <h4>Propose New Database</h4>
+
+      <div id="databaseInputProposals">
+        <input type="text" id="databaseProposal_name" maxLength="64" placeholder="Name" />
+        <input type="text" id="databaseProposal_description" maxLength="64" placeholder="Description" />
+      </div>
+
+      <button id="addDatabaseProposal">Add Proposal</button>
+      
+      <button class="goToProposals">View Proposals</button>
+      <hr />
+    </div>
+    <div id="proposalOverview" style="display:none;">
+      <div class="row">
+        <div class="column column-50">
+          <h4>Proposals</h4>
+
+          <br />
+
+          <div id="proposals"></div>
+        </div>
+        <div class="column column-40 column-offset-10">
+          <h4>Manager</h4>
+
+          <hr />
+
+          <button id="goToShard">Add Data</button>
+          <button id="goToNewDatabase">New Database</button>
+          <button id="sendTokens">Send Tokens</button> <button id="goToDatabaseOverview">View Databases</button>
+
+          <br />
+
+          <br />
+
+          <label>Oracle Vote</label>
+
+          <input type="text" id="checkAddress" placeholder="Proposal ID">
+
+          <button id="aiEvaluate">Auto Evaluate</button>
+
+          <div id="aiResults"></div>
+
+          <hr />
+
+          <label>Delegate / Crowdsourcing</label>
+          <input type="text" id="delegateAddress" placeholder="Proposal ID">
+
+          <button id="delegateVote">Delegate My Vote</button>
+          
+        </div>
+
+      </div>
+
+      <br />
+
+    <br /><br />
+    </div>
+    <div id="databaseOverview" style="display:block;">
+      <div class="row">
+        <div class="column column-50">
+          <h4>Database Overview</h4>
+
+          <br />
+
+          <div id="databases"></div>
+        </div>
+        <div class="column column-40 column-offset-10">
+          <h4>Manager</h4>
+
+          <hr />
+
+          <button class="goToProposals">View Proposals</button>
+
+          
+        </div>
+
+      </div>
+      
+      <br />
+
+    <br /><br />
+    </div>
+    <div id="databaseView" style="display:none;">
+      <div class="row">
+        <div class="column column-50">
+          <h4>Shards of <span id="databaseView_dbtitle"></span></h4>
+
+          <br />
+
+          <div id="shards"></div>
+        </div>
+        <div class="column column-40 column-offset-10">
+          <h4>Manager</h4>
+
+          <hr />
+
+          <button class="goToProposals">View Proposals</button>
+        </div>
+      </div>
+      <br />
+
+    <br /><br />
+    </div>
+    <div id="singleShardView", style="display:none;">
+      <h4>Shard #<span id="singleShard_idx"></span> of "<span id="singleShard_dbName"></span>(<span id="singleShard_dbAddr"></span>)</h4>
+      <p><label>Added:</label><span id="singleShard_added"></span>
+      <p><label>Curator:</label><span id="singleShard_curator"></span>
+
+      <p><label>Rewarded tokens:</label><span id="singleShard_rewardedTokens"></span> Curator Tokens
+      <p><label>Files in shard:</label><input id="singleShard_files" name="singleShard_files[]" type="file" multiple readonly="true">
+        
+      <p><button id="singleShardBackBtn">Back</button>
+      <button id="singleShardChallengeBtn">Propose removal</button>      
+      <hr />
+    </div>
+    <div id="databaseProposalVoting", style="display:none;">
+      <h4>Vote on adding database</h4>
+
+      <label>Proposal #<span id="databaseProposalVoting_id"></span> to create database:</label>
+      <span id="databaseProposalVoting_dbtitle"></span>
+      <p><span id="databaseProposalVoting_description"></span>
+
+      <p><label>Voting ends at:</label> <span id="databaseProposalVoting_deadline"></span>
+ 
+      <p><label>Accept this proposal?</label>
+      <p><button id="yayDatabaseProposal">Yay</button>
+      <button id="nayDatabaseProposal">Nay</button>
+      
+      <button class="goToProposals">View Proposals</button>
+      <hr />
+    </div>
+    <div id="shardProposalVoting", style="display:none;"> 
+      <h4>Vote on adding shard</h4>
+
+      <label>Proposal #<span id="shardProposalVoting_id"></span> to add files to database:</label><span id="shardProposalVoting_dbtitle"></span>
+      <p><label>Data description:</label><span id="shardProposalVoting_description"></span>
+
+      <p><label>Files proposed:</label><input id="shardProposalVoting_files" name="shardProposalVoting_files[]" type="file" multiple readonly="true">
+      <p><label>Requested reward:</label><span id="shardProposalVoting_requestedReward"></span> Curator Tokens
+      <p><label>Voting ends at:</label> <span id="shardProposalVoting_deadline"></span>
+ 
+      <p><label>Accept this proposal?</label>
+      <p><button id="yayShardProposal">Yay</button>
+      <button id="nayShardProposal">Nay</button>
+      
+      <button class="goToProposals">View Proposals</button>
+      <hr />
+    </div>
+
+    <div id="shardRemoveProposalVoting", style="display:none;">
+      <h4>Vote on removing shard</h4>
+
+      <label>Proposal #<span id="shardRemoveProposalVoting_id"></span> to add files to database:</label><span id="shardRemoveProposalVoting_dbtitle"></span>
+      <p><label>Proposal description:</label><span id="shardRemoveProposalVoting_description"></span>
+
+      <p><label>Files proposed for deletion:</label><input id="shardRemoveProposalVoting_files" name="shardRemoveProposalVoting_files[]" type="file" multiple readonly="true">
+      <p><label>Reward originally rewarded:</label><span id="shardRemoveProposalVoting_requestedReward"></span> Curator Tokens
+      <p><label>Voting ends at:</label> <span id="shardRemoveProposalVoting_deadline"></span>
+ 
+      <p><label>Accept this proposal?</label>
+      <p><button id="yayShardRemoveProposal">Yay</button>
+      <button id="nayShardRemoveProposal">Nay</button>
+      
+      <button class="goToProposals">View Proposals</button>
+      <hr />
+    </div>
+    <div id="ballotActiveResponse" style="padding: 20px; border: 1px solid #9b4dca;"></div>
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.4.5/css/fileinput.min.css" media="all" rel="stylesheet" type="text/css" />
+    <script src="js/jquery-3.3.1.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.11.0/umd/popper.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <!-- loading the minified version -->
+    <script src="https://unpkg.com/ipfs-api/dist/index.js"></script>
+    <!-- deep learn -->
+    <script src="https://unpkg.com/deeplearn"></script>
+    <script src="js/bundle.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-fileinput/4.4.5/js/fileinput.min.js"></script>
+    <script src="js/web3.min.js"></script>
+    <script src="js/truffle-contract.js"></script>
+    <script src="js/date.format.js"></script>
+    <script src="js/common.js"></script>
+    <script src="js/index.js"></script>
+    </body>
+  </html>
